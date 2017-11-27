@@ -1,4 +1,6 @@
+#!/usr/bin/python3.3
 import web
+import os
 # See http://webpy.org/docs/0.3/tutorial
 
 urls = (
