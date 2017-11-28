@@ -1,6 +1,3 @@
 # Exclude
-/.c9
-/fbx2018
-/Python-3.3.7
 /models
-get-pip.py
+/.idea
