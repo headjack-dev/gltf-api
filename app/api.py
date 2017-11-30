@@ -1,15 +1,18 @@
+#!/usr/bin/env python3
+__author__ = "Nick Kraakman - nick@headjack.io"
+
 from flask import Flask, request  # redirect, url_for
 from flask_restful import Resource, Api
 from sqlalchemy import create_engine
 from flask.ext.jsonpify import jsonify
 from werkzeug.utils import secure_filename
-import os
+import subprocess, os, sys
 
 
 # CONFIG
 
 UPLOAD_FOLDER = '../static/uploads'
-ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
+ALLOWED_EXTENSIONS = set(['fbx', 'obj', 'zip', 'glb'])
 
 db_connect = create_engine('sqlite:///chinook.db')
 app = Flask(__name__)
@@ -86,8 +89,28 @@ class Models(Resource):
             error = {'error': 'The %s extension is not allowed, please upload an fbx, obj, or zip file' % extension}
             return jsonify(error)
 
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(file_path)
+
+        # Convert uploaded file to glTF
+        # WARNING: Conversion runs on separate thread, and takes longer to finish than the upload!
+        command = [
+            '../lib/fbx2gltf.py',
+            file_path
+        ]
+        subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            universal_newlines=True
+        )
+        # Write stdout to logfiles
+        # sys.stdout = open(cwd+'/vrencoder_log.txt', 'w', 1)
+        # sys.stderr = open(cwd+'/vrencoder_errors.txt', 'w', 1)
+
         # TODO(Nick) Add processing of uploaded file, like unzip and convert to glTF, and return download location
+        # TODO(Nick) Store metadata of upload in database
+        # TODO(Nick) Add parameters to set whether to convert to binary, zip or both, and whether to compress
         result = {'result': 'Successfully uploaded %s' % filename}
         return jsonify(result)
         # return redirect(url_for('uploaded_file', filename=filename)) # In case we want to display a webpage
@@ -118,6 +141,7 @@ class Model(Resource):
         Returns:
             string: JSON result of model metadata.
         """
+        # TODO(Nick) Allow parameters to return model in specific format (Original, glb (binary), or glTF (zip))
 
     def delete(self, model_id):
         """Delete a single model.

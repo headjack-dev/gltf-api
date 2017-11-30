@@ -1,3 +1,9 @@
 # Exclude
 /models
 /.idea
+*.fbx
+*.bin
+*.gltf
+*.obj
+*.mtl
+*.zip
