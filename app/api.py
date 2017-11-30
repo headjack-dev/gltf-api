@@ -14,6 +14,7 @@ ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
 db_connect = create_engine('sqlite:///chinook.db')
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024  # Set max upload size to 200MB
 api = Api(app)
 
 
@@ -63,9 +64,17 @@ class Employees_Name(Resource):
         return jsonify(result)
 
 
-class Uploads(Resource):
+class Models(Resource):
 
     def post(self):
+        """Upload files.
+
+        Args:
+            self
+
+        Returns:
+            string: JSON result, or error if one or more of the checks fail.
+        """
         file = request.files['file']
         if not file:
             error = {'error': 'No file present in the request'}
@@ -78,17 +87,57 @@ class Uploads(Resource):
             return jsonify(error)
 
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        # TODO(Nick) Add processing of uploaded file, like unzip and convert to glTF, and return download location
         result = {'result': 'Successfully uploaded %s' % filename}
         return jsonify(result)
         # return redirect(url_for('uploaded_file', filename=filename)) # In case we want to display a webpage
 
+    def get(self):
+        """List all uploaded files.
+
+        Args:
+            self
+
+        Returns:
+            string: JSON array of all files in upload directory.
+        """
+        # TODO(Nick) Add authentication so that only admins can view list of all uploads
+        result = os.listdir(app.config['UPLOAD_FOLDER'])
+        return jsonify(result)
+
+
+class Model(Resource):
+
+    def get(self, model_id):
+        """Return data about a single model.
+
+        Args:
+            self
+            model_id (str): The ID of the model you want to view.
+
+        Returns:
+            string: JSON result of model metadata.
+        """
+
+    def delete(self, model_id):
+        """Delete a single model.
+
+        Args:
+            self
+            model_id (str): The ID of the model you want to delete.
+
+        Returns:
+            string: JSON result, or error if one or more of the checks fail.
+        """
+
 
 # ROUTES
 
-api.add_resource(Employees, '/v1/employees')  # Route_1
-api.add_resource(Tracks, '/v1/tracks')  # Route_2
-api.add_resource(Employees_Name, '/v1/employees/<employee_id>')  # Route_3
-api.add_resource(Uploads, '/v1/uploads')  # Route 4
+api.add_resource(Employees, '/v1/employees')
+api.add_resource(Tracks, '/v1/tracks')
+api.add_resource(Employees_Name, '/v1/employees/<employee_id>')
+api.add_resource(Models, '/v1/models')
+api.add_resource(Model, '/v1/models/<model_id>')
 
 if __name__ == '__main__':
      app.run(port='5010')
