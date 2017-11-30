@@ -10,6 +10,10 @@ $def with (greeting)
 		I just want to say <em style="color: green; font-size: 2em;">$greeting</em>
 	$else:
 		<em>Hello</em>, world!
+
+	<form method=POST enctype=multipart/form-data action="{{ url_for('upload') }}">
+    	<input type=file name=photo>
+	</form>
 	
 	</body>
 </html>
