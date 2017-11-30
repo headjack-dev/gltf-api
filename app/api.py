@@ -28,9 +28,10 @@ def allowed_file(filename):
     Returns:
         bool: True if file extension is allowed, False otherwise.
     """
+    extension = filename.rsplit('.', 1)[1].lower()
     result = '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-    return result
+        extension in ALLOWED_EXTENSIONS
+    return result, extension
 
 
 # API ENDPOINTS
@@ -70,8 +71,8 @@ class Uploads(Resource):
             return jsonify(error)
 
         filename = secure_filename(file.filename)
-        if not allowed_file(filename):
-            extension = file.filename.rsplit('.', 1)[1].lower()
+        allowed, extension = allowed_file(filename)
+        if not allowed:
             error = {'error': 'The %s extension is not allowed, please upload an fbx, obj, or zip file' % extension}
             return jsonify(error)
 
