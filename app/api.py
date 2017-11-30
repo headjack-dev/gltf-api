@@ -27,6 +27,7 @@ def allowed_file(filename):
 
     Returns:
         bool: True if file extension is allowed, False otherwise.
+        string: Extension of the checked file.
     """
     extension = filename.rsplit('.', 1)[1].lower()
     result = '.' in filename and \
