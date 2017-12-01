@@ -5,9 +5,9 @@ __author__ = "Nick Kraakman - nick@headjack.io"
 from flask import Flask, request  # redirect, url_for
 from flask_restful import Resource, Api
 from sqlalchemy import create_engine
-from flask.ext.jsonpify import jsonify
+from flask_jsonpify import jsonify
 from werkzeug.utils import secure_filename
-import subprocess, os, sys
+import subprocess, os, requests, sys
 
 
 # CONFIG
@@ -38,6 +38,30 @@ def allowed_file(filename):
     result = '.' in filename and \
         extension in ALLOWED_EXTENSIONS
     return result, extension
+
+
+def download_file(source_path, destination_path):
+    """Download a file from a url to a destination.
+
+    Args:
+        source_path (str): Url to file that needs to be downloaded.
+        destination_path (str): Path where to download the file to.
+
+    Returns:
+        bool: True if download succeeded, False otherwise.
+    """
+    r = requests.get(source_path, stream=True)  # Stream to prevent file to be stored in memory
+    if r.status_code == 200:
+        with open(destination_path, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=1024):
+                if chunk:  # filter out keep-alive new chunks
+                    f.write(chunk)
+        success = True
+    else:
+        success = False
+
+    r.close()
+    return success
 
 
 # API ENDPOINTS
@@ -79,26 +103,48 @@ class Models(Resource):
         Returns:
             string: JSON result, or error if one or more of the checks fail.
         """
-        file = request.files['file']
-        if not file:
-            error = {'error': 'No file present in the request'}
+        # TODO(Nick): Refactor the IF statement below to remove duplicate code
+        destination_path = ''
+
+        if 'file' in request.files:
+            # File data uploaded
+            file = request.files['file']
+            filename = secure_filename(file.filename)
+            allowed, extension = allowed_file(filename)
+
+            # Save uploaded file
+            if allowed:
+                destination_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(destination_path)
+            else:
+                print('The %s extension is not allowed, please upload an fbx, obj, or zip file' % extension)
+
+        elif 'source_path' in request.form:
+            # URL sent, no file data uploaded
+            source_path = request.form.get('source_path')
+            filename = secure_filename(source_path.split('/')[-1])
+            allowed, extension = allowed_file(filename)
+
+            # Download file
+            if allowed:
+                destination_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                download_file(source_path, destination_path)
+            else:
+                print('The %s extension is not allowed, please upload an fbx, obj, or zip file' % extension)
+
+        else:
+            error = {'error': 'Neither file nor source_path present in the request'}
             return jsonify(error)
 
-        filename = secure_filename(file.filename)
-        allowed, extension = allowed_file(filename)
         if not allowed:
             error = {'error': 'The %s extension is not allowed, please upload an fbx, obj, or zip file' % extension}
             return jsonify(error)
-
-        # Save uploaded file
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(file_path)
 
         # Convert uploaded file to glTF
         # WARNING: Conversion runs on separate thread, and takes longer to finish than the upload!
         command = [
             '../lib/fbx2gltf.py',
-            file_path
+            destination_path
         ]
         process = subprocess.Popen(
             command,
@@ -111,10 +157,10 @@ class Models(Resource):
         # sys.stdout = open(cwd+'/vrencoder_log.txt', 'w', 1)
         # sys.stderr = open(cwd+'/vrencoder_errors.txt', 'w', 1)
 
-        # TODO(Nick) Add processing of uploaded file, like unzip and convert to glTF, and return download location
         # TODO(Nick) Store metadata of upload in database
-        # TODO(Nick) Add parameters to set whether to convert to binary, zip or both, and whether to compress
-        result = {'result': 'Successfully uploaded %s' % filename}
+        # TODO(Nick) Pass parameters to set whether to convert to binary, zip or both, and whether to compress
+        # TODO(Nick) Upload/save/convert initially to temp folder, and then copy to static/models after completed
+        result = {'result': 'Successfully saved %s to %s' % (filename, destination_path)}
         return jsonify(result)
         # return redirect(url_for('uploaded_file', filename=filename)) # In case we want to display a webpage
 
@@ -167,4 +213,4 @@ api.add_resource(Models, '/v1/models')
 api.add_resource(Model, '/v1/models/<model_id>')
 
 if __name__ == '__main__':
-     app.run(port='5010')
+     app.run(port='5011')
