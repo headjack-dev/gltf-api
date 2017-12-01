@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# https://google.github.io/styleguide/pyguide.html
 __author__ = "Nick Kraakman - nick@headjack.io"
 
 from flask import Flask, request  # redirect, url_for
@@ -58,7 +59,7 @@ class Tracks(Resource):
         return jsonify(result)
 
 
-class Employees_Name(Resource):
+class EmployeesName(Resource):
 
     def get(self, employee_id):
         conn = db_connect.connect()
@@ -89,6 +90,7 @@ class Models(Resource):
             error = {'error': 'The %s extension is not allowed, please upload an fbx, obj, or zip file' % extension}
             return jsonify(error)
 
+        # Save uploaded file
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(file_path)
 
@@ -98,12 +100,13 @@ class Models(Resource):
             '../lib/fbx2gltf.py',
             file_path
         ]
-        subprocess.Popen(
+        process = subprocess.Popen(
             command,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             universal_newlines=True
         )
+        process.communicate()  # Wait for subprocess to finish
         # Write stdout to logfiles
         # sys.stdout = open(cwd+'/vrencoder_log.txt', 'w', 1)
         # sys.stderr = open(cwd+'/vrencoder_errors.txt', 'w', 1)
@@ -159,7 +162,7 @@ class Model(Resource):
 
 api.add_resource(Employees, '/v1/employees')
 api.add_resource(Tracks, '/v1/tracks')
-api.add_resource(Employees_Name, '/v1/employees/<employee_id>')
+api.add_resource(EmployeesName, '/v1/employees/<employee_id>')
 api.add_resource(Models, '/v1/models')
 api.add_resource(Model, '/v1/models/<model_id>')
 
