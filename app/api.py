@@ -13,7 +13,7 @@ import subprocess, os, requests, sys
 # CONFIG
 
 UPLOAD_FOLDER = '../static/uploads'
-ALLOWED_EXTENSIONS = set(['fbx', 'obj', 'zip', 'glb'])
+ALLOWED_EXTENSIONS = (['fbx', 'obj', 'zip', 'glb'])
 
 db_connect = create_engine('sqlite:///chinook.db')
 app = Flask(__name__)
@@ -158,7 +158,7 @@ class Models(Resource):
         # sys.stderr = open(cwd+'/vrencoder_errors.txt', 'w', 1)
 
         # TODO(Nick) Store metadata of upload in database
-        # TODO(Nick) Pass parameters to set whether to convert to binary, zip or both, and whether to compress
+        # TODO(Nick) Pass parameters to set whether to convert to binary, zip or both, and whether to compress https://github.com/pissang/qtek-model-viewer#converter
         # TODO(Nick) Upload/save/convert initially to temp folder, and then copy to static/models after completed
         result = {'result': 'Successfully saved %s to %s' % (filename, destination_path)}
         return jsonify(result)
