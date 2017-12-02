@@ -14,12 +14,21 @@ import subprocess, os, requests, sys
 
 UPLOAD_FOLDER = '../static/uploads'
 ALLOWED_EXTENSIONS = (['fbx', 'obj', 'zip', 'glb'])
+MAX_UPLOAD_SIZE_MB = 200  # in MB
+MAX_UPLOAD_SIZE_B = MAX_UPLOAD_SIZE_MB * 1024 * 1024
 
 db_connect = create_engine('sqlite:///chinook.db')
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024  # Set max upload size to 200MB
-api = Api(app)
+app.config['MAX_CONTENT_LENGTH'] = MAX_UPLOAD_SIZE_B  # Set max upload size
+# Define custom error messages
+errors = {
+    'RequestEntityTooLarge': {
+        'message': 'Source file too large. Please upload a file smaller than %sMB' % MAX_UPLOAD_SIZE_MB,
+        'status': 413,
+    }
+}
+api = Api(app, errors=errors)
 
 
 # FUNCTIONS
@@ -50,11 +59,17 @@ def download_file(source_path, destination_path):
     Returns:
         bool: True if download succeeded, False otherwise.
     """
-    r = requests.get(source_path, stream=True)  # Stream to prevent file to be stored in memory
+    r = requests.get(source_path, timeout=10, stream=True)  # Stream to prevent file to be stored in memory
+    content = b''
+
     if r.status_code == 200:
         with open(destination_path, 'wb') as f:
             for chunk in r.iter_content(chunk_size=1024):
                 if chunk:  # filter out keep-alive new chunks
+                    content += chunk
+                    if len(content) > MAX_UPLOAD_SIZE_B:
+                        r.close()
+                        raise ValueError('Source file too large. Please upload a file smaller than %sMB' % MAX_UPLOAD_SIZE_MB)
                     f.write(chunk)
         success = True
     else:
@@ -157,6 +172,7 @@ class Models(Resource):
         # sys.stdout = open(cwd+'/vrencoder_log.txt', 'w', 1)
         # sys.stderr = open(cwd+'/vrencoder_errors.txt', 'w', 1)
 
+        # TODO(Nick) Return correct status code if uploaded file is too large
         # TODO(Nick) Store metadata of upload in database
         # TODO(Nick) Pass parameters to set whether to convert to binary, zip or both, and whether to compress https://github.com/pissang/qtek-model-viewer#converter
         # TODO(Nick) Upload/save/convert initially to temp folder, and then copy to static/models after completed
