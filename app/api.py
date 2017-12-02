@@ -79,6 +79,34 @@ def download_file(source_path, destination_path):
     return success
 
 
+def make_error(status_code, error_code, message='', help_url=''):
+    """Create an error message.
+
+    Use as follows:
+    error = make_error(413, 'file_too_big', 'The file you tried to upload is 210MB, but 200MB is the limit')
+    return error
+
+    Args:
+        status_code (int): HTTP status code, e.g. `404`.
+        error_code (str): Internal error code of the API, e.g. `OAuthException`.
+        message (str): A human readable, verbose error message saying what is wrong, with what, and how to fix it.
+        help_url (str): Direct URL to more information about this particular error.
+
+    Returns:
+        object: Object with the entire JSON response to return to the client.
+    """
+    response = jsonify({
+        'ok': False,
+        'error': {
+            'type': error_code,
+            'message': message,
+            'help_url': help_url
+        }
+    })
+    response.status_code = status_code
+    return response
+
+
 # API ENDPOINTS
 
 class Employees(Resource):
@@ -173,6 +201,9 @@ class Models(Resource):
         # sys.stderr = open(cwd+'/vrencoder_errors.txt', 'w', 1)
 
         # TODO(Nick) Return correct status code if uploaded file is too large
+        # See https://stackoverflow.com/questions/21638922/custom-error-message-json-object-with-flask-restful
+        # See https://apidocs.chargebee.com/docs/api#error_handling
+        # See https://stripe.com/docs/relay/apps-error-guide
         # TODO(Nick) Store metadata of upload in database
         # TODO(Nick) Pass parameters to set whether to convert to binary, zip or both, and whether to compress https://github.com/pissang/qtek-model-viewer#converter
         # TODO(Nick) Upload/save/convert initially to temp folder, and then copy to static/models after completed
