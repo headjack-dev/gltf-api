@@ -1,34 +1,29 @@
 #!/usr/bin/env python3
-# https://google.github.io/styleguide/pyguide.html
-__author__ = "Nick Kraakman - nick@headjack.io"
-
 from flask import Flask, request  # redirect, url_for
 from flask_restful import Resource, Api
 from sqlalchemy import create_engine
 from flask_jsonpify import jsonify
 from werkzeug.utils import secure_filename
-import subprocess, os, requests, sys
+import subprocess
+import os
+import requests
+
+# Follow: https://google.github.io/styleguide/pyguide.html
+__author__ = "Nick Kraakman - nick@headjack.io"
 
 
 # CONFIG
 
 UPLOAD_FOLDER = '../static/uploads'
 ALLOWED_EXTENSIONS = (['fbx', 'obj', 'zip', 'glb'])
-MAX_UPLOAD_SIZE_MB = 200  # in MB
+MAX_UPLOAD_SIZE_MB = 100  # in MB
 MAX_UPLOAD_SIZE_B = MAX_UPLOAD_SIZE_MB * 1024 * 1024
 
 db_connect = create_engine('sqlite:///chinook.db')
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = MAX_UPLOAD_SIZE_B  # Set max upload size
-# Define custom error messages
-errors = {
-    'RequestEntityTooLarge': {
-        'message': 'Source file too large. Please upload a file smaller than %sMB' % MAX_UPLOAD_SIZE_MB,
-        'status': 413,
-    }
-}
-api = Api(app, errors=errors)
+app.config['MAX_CONTENT_LENGTH'] = MAX_UPLOAD_SIZE_B * 3  # Set max upload size larger, else broken pipe error thrown
+api = Api(app)
 
 
 # FUNCTIONS
@@ -59,24 +54,64 @@ def download_file(source_path, destination_path):
     Returns:
         bool: True if download succeeded, False otherwise.
     """
-    r = requests.get(source_path, timeout=10, stream=True)  # Stream to prevent file to be stored in memory
-    content = b''
+    r = requests.get(source_path, timeout=30, stream=True)  # Stream to prevent file to be stored in memory
+    size = 0
 
+    # If Content-Length is set
+    if r.headers.get('Content-Length') and int(r.headers.get('Content-Length')) > MAX_UPLOAD_SIZE_B:
+        r.close()
+        raise CustomError(413,
+                          'payload_too_large',
+                          'The file you tried to upload is larger than the %dMB limit. Please upload '
+                          'a smaller file.' % MAX_UPLOAD_SIZE_MB)
+
+    # If Content-Length is not set
     if r.status_code == 200:
         with open(destination_path, 'wb') as f:
             for chunk in r.iter_content(chunk_size=1024):
-                if chunk:  # filter out keep-alive new chunks
-                    content += chunk
-                    if len(content) > MAX_UPLOAD_SIZE_B:
+                if chunk:  # Filter out keep-alive new chunks
+                    size += len(chunk)
+                    if size > MAX_UPLOAD_SIZE_B:
                         r.close()
-                        raise ValueError('Source file too large. Please upload a file smaller than %sMB' % MAX_UPLOAD_SIZE_MB)
-                    f.write(chunk)
-        success = True
+                        f.close()
+                        os.remove(destination_path)  # Remove unfinished download
+                        raise CustomError(413,
+                                          'payload_too_large',
+                                          'The file you tried to upload is larger than the %dMB limit. Please upload '
+                                          'a smaller file.' % MAX_UPLOAD_SIZE_MB)
+                    else:
+                        f.write(chunk)
     else:
-        success = False
-
+        raise CustomError(404,
+                          'file_not_found',
+                          'The file at %s could not be found. Please check your source_path.' % source_path)
     r.close()
-    return success
+
+
+def get_size(file_object):
+    """Get the file size of a file uploaded through a form.
+
+    Args:
+        file_object (object): A file from the `files` part of a POST request.
+
+
+    Returns:
+        int: File size in bytes.
+    """
+    if file_object.content_length:
+        return file_object.content_length
+
+    try:
+        pos = file_object.tell()
+        file_object.seek(0, 2)  # Seek to end
+        size = file_object.tell()
+        file_object.seek(pos)  # Back to original position
+        return size
+    except (AttributeError, IOError):
+        pass
+
+    # in-memory file object that doesn't support seeking or tell
+    return 0  # Assume small enough
 
 
 def make_error(status_code, error_code, message='', help_url=''):
@@ -96,7 +131,6 @@ def make_error(status_code, error_code, message='', help_url=''):
         object: Object with the entire JSON response to return to the client.
     """
     response = jsonify({
-        'ok': False,
         'error': {
             'type': error_code,
             'message': message,
@@ -105,6 +139,29 @@ def make_error(status_code, error_code, message='', help_url=''):
     })
     response.status_code = status_code
     return response
+
+
+# CUSTOM EXCEPTIONS
+
+class Error(Exception):
+    """Base class for exceptions in this module."""
+    pass
+
+
+class CustomError(Error):
+    """Custom exception, raised when an uploaded file is too large or when URL does not return 200 status.
+
+    Attributes:
+        status_code (int): HTTP status code, e.g. `404`.
+        error_code (str): Internal error code of the API, e.g. `OAuthException`.
+        message (str): A human readable, verbose error message saying what is wrong, with what, and how to fix it.
+        help_url (str): Direct URL to more information about this particular error.
+    """
+    def __init__(self, status_code, error_code, message='', help_url=''):
+        self.status_code = status_code
+        self.type = error_code
+        self.message = message
+        self.help_url = help_url
 
 
 # API ENDPOINTS
@@ -147,20 +204,26 @@ class Models(Resource):
             string: JSON result, or error if one or more of the checks fail.
         """
         # TODO(Nick): Refactor the IF statement below to remove duplicate code
-        destination_path = ''
-
         if 'file' in request.files:
             # File data uploaded
             file = request.files['file']
             filename = secure_filename(file.filename)
             allowed, extension = allowed_file(filename)
 
+            if get_size(file) > MAX_UPLOAD_SIZE_B:
+                return make_error(413,
+                                  'payload_too_large',
+                                  'The file you tried to upload is larger than the %dMB limit. Please upload '
+                                  'a smaller file.' % MAX_UPLOAD_SIZE_MB)
+
             # Save uploaded file
             if allowed:
                 destination_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 file.save(destination_path)
             else:
-                print('The %s extension is not allowed, please upload an fbx, obj, or zip file' % extension)
+                return make_error(415,
+                                  'unsupported_file',
+                                  'The %s extension is not allowed, please upload an fbx, obj, or zip file' % extension)
 
         elif 'source_path' in request.form:
             # URL sent, no file data uploaded
@@ -171,17 +234,25 @@ class Models(Resource):
             # Download file
             if allowed:
                 destination_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                download_file(source_path, destination_path)
+                try:
+                    download_file(source_path, destination_path)
+                except CustomError as e:
+                    return make_error(e.status_code, e.type, e.message, e.help_url)
+
             else:
-                print('The %s extension is not allowed, please upload an fbx, obj, or zip file' % extension)
+                return make_error(415,
+                                  'unsupported_file',
+                                  'The %s extension is not allowed, please upload an fbx, obj, or zip file' % extension)
 
         else:
-            error = {'error': 'Neither file nor source_path present in the request'}
-            return jsonify(error)
+            return make_error(400,
+                              'bad_request',
+                              'Neither file nor source_path present in the request')
 
         if not allowed:
-            error = {'error': 'The %s extension is not allowed, please upload an fbx, obj, or zip file' % extension}
-            return jsonify(error)
+            return make_error(415,
+                              'unsupported_file',
+                              'The %s extension is not allowed, please upload an fbx, obj, or zip file' % extension)
 
         # Convert uploaded file to glTF
         # WARNING: Conversion runs on separate thread, and takes longer to finish than the upload!
@@ -260,4 +331,4 @@ api.add_resource(Models, '/v1/models')
 api.add_resource(Model, '/v1/models/<model_id>')
 
 if __name__ == '__main__':
-     app.run(port='5011')
+     app.run(port='5016')
