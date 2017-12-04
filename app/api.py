@@ -7,6 +7,7 @@ from werkzeug.utils import secure_filename
 import subprocess
 import os
 import requests
+import uuid
 
 # Follow: https://google.github.io/styleguide/pyguide.html
 __author__ = "Nick Kraakman - nick@headjack.io"
@@ -14,7 +15,8 @@ __author__ = "Nick Kraakman - nick@headjack.io"
 
 # CONFIG
 
-UPLOAD_FOLDER = '../static/uploads'
+UPLOAD_FOLDER = '../static/models'
+TEMP_FOLDER = '../temp'
 ALLOWED_EXTENSIONS = (['fbx', 'obj', 'zip', 'glb'])
 MAX_UPLOAD_SIZE_MB = 100  # in MB
 MAX_UPLOAD_SIZE_B = MAX_UPLOAD_SIZE_MB * 1024 * 1024
@@ -65,16 +67,23 @@ def download_file(source_path, destination_path):
                           'The file you tried to upload is larger than the %dMB limit. Please upload '
                           'a smaller file.' % MAX_UPLOAD_SIZE_MB)
 
+    destination_directory = os.path.dirname(destination_path)
+
+    # Create destination directory if it does not exist yet
+    if not os.path.exists(destination_directory):
+        os.makedirs(destination_directory)
+
     # If Content-Length is not set
     if r.status_code == 200:
-        with open(destination_path, 'wb') as f:
+        with open(destination_path+'_temp', 'wb') as f:
             for chunk in r.iter_content(chunk_size=1024):
                 if chunk:  # Filter out keep-alive new chunks
                     size += len(chunk)
                     if size > MAX_UPLOAD_SIZE_B:
                         r.close()
                         f.close()
-                        os.remove(destination_path)  # Remove unfinished download
+                        os.remove(destination_path+'_temp')  # Remove unfinished download
+                        os.rmdir(destination_directory)  # Remove now empty folder
                         raise CustomError(413,
                                           'payload_too_large',
                                           'The file you tried to upload is larger than the %dMB limit. Please upload '
@@ -85,6 +94,7 @@ def download_file(source_path, destination_path):
         raise CustomError(404,
                           'file_not_found',
                           'The file at %s could not be found. Please check your source_path.' % source_path)
+    os.rename(destination_path+'_temp', destination_path)  # Rename _temp file to indicate download completed
     r.close()
 
 
@@ -203,6 +213,8 @@ class Models(Resource):
         Returns:
             string: JSON result, or error if one or more of the checks fail.
         """
+        unique_id = uuid.uuid4().hex
+
         # TODO(Nick): Refactor the IF statement below to remove duplicate code
         if 'file' in request.files:
             # File data uploaded
@@ -218,8 +230,15 @@ class Models(Resource):
 
             # Save uploaded file
             if allowed:
-                destination_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                destination_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_id, filename)
+                destination_directory = os.path.dirname(destination_path)
+
+                # Create destination directory if it does not exist yet
+                if not os.path.exists(destination_directory):
+                    os.makedirs(destination_directory)
+
                 file.save(destination_path)
+
             else:
                 return make_error(415,
                                   'unsupported_file',
@@ -233,7 +252,7 @@ class Models(Resource):
 
             # Download file
             if allowed:
-                destination_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                destination_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_id, filename)
                 try:
                     download_file(source_path, destination_path)
                 except CustomError as e:
@@ -271,13 +290,8 @@ class Models(Resource):
         # sys.stdout = open(cwd+'/vrencoder_log.txt', 'w', 1)
         # sys.stderr = open(cwd+'/vrencoder_errors.txt', 'w', 1)
 
-        # TODO(Nick) Return correct status code if uploaded file is too large
-        # See https://stackoverflow.com/questions/21638922/custom-error-message-json-object-with-flask-restful
-        # See https://apidocs.chargebee.com/docs/api#error_handling
-        # See https://stripe.com/docs/relay/apps-error-guide
         # TODO(Nick) Store metadata of upload in database
         # TODO(Nick) Pass parameters to set whether to convert to binary, zip or both, and whether to compress https://github.com/pissang/qtek-model-viewer#converter
-        # TODO(Nick) Upload/save/convert initially to temp folder, and then copy to static/models after completed
         result = {'result': 'Successfully saved %s to %s' % (filename, destination_path)}
         return jsonify(result)
         # return redirect(url_for('uploaded_file', filename=filename)) # In case we want to display a webpage
