@@ -40,6 +40,18 @@ print(r.status_code)
 print(r.text)
 
 
+# Upload a supported file by sending the url + arguments for converter
+print("Post source_path to supported file + arguments")
+url = 'http://127.0.0.1:5016/v1/models'  # API endpoint
+source_path = 'https://purplepill.io/wp-includes/3d/test.FBX'
+try:
+    r = requests.post(url=url, data={'source_path': source_path, 'compress': True, 'binary': True})
+except requests.exceptions.RequestException as e:  # This is the correct syntax
+    print(e)
+print(r.status_code)
+print(r.text)
+
+
 # Upload a file that is too large
 print("Upload a file that is too large")
 url = 'http://127.0.0.1:5016/v1/models'  # API endpoint

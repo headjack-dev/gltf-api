@@ -275,10 +275,19 @@ class Models(Resource):
 
         # Convert uploaded file to glTF
         # WARNING: Conversion runs on separate thread, and takes longer to finish than the upload!
-        command = [
-            '../lib/fbx2gltf.py',
-            destination_path
-        ]
+        command = ['../lib/fbx2gltf.py']
+
+        # Default is don't compress
+        if 'compress' in request.form and request.form.get('compress'):
+            compress = '-q'
+            command.append(compress)
+
+        # TODO(Nick): Add binary export option once it becomes available in the fbx2gltf library
+        # if 'binary' in request.form and request.form.get('binary'):
+        #    binary = '-b'
+        #    command.append(binary)
+
+        command.append(destination_path)
         process = subprocess.Popen(
             command,
             stdout=subprocess.PIPE,
