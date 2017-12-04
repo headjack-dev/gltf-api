@@ -7,15 +7,16 @@ from sqlalchemy import create_engine
 Base = declarative_base()
 
 
-class Events(Base):
-    __tablename__ = 'events'
-    # Here we define columns for the table person
-    # Notice that each column is also a normal Python instance attribute.
-    id = Column(Integer, primary_key=True)
-    event_id = Column(String(32))
-    name = Column(String(250), nullable=False)
-    created_date = Column(DateTime, nullable=False)
-    content = Column(Text)
+# Events are already handled by AWS API Gateway, or else should be handled by a logging microservice, not PER service
+# class Events(Base):
+#     __tablename__ = 'events'
+#     # Here we define columns for the table person
+#     # Notice that each column is also a normal Python instance attribute.
+#     id = Column(Integer, primary_key=True)
+#     event_id = Column(String(32))
+#     name = Column(String(250), nullable=False)
+#     created_date = Column(DateTime, nullable=False)
+#     content = Column(Text)
 
 
 class Models(Base):
@@ -23,8 +24,7 @@ class Models(Base):
     # Here we define columns for the table address.
     # Notice that each column is also a normal Python instance attribute.
     id = Column(Integer, primary_key=True)
-    model_id = Column(String(32))
-    event_id = Column(String(32), ForeignKey('events.event_id'))
+    model_id = Column(String(32), unique=True)
     filename = Column(String(250))
     created_date = Column(DateTime, nullable=False)
     original_file = Column(String(250))

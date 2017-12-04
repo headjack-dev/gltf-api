@@ -213,13 +213,9 @@ class Models(Resource):
         Returns:
             string: JSON result, or error if one or more of the checks fail.
         """
-        # TODO(Nick) Write server errors to log file
         # TODO(Nick) Store metadata of upload in database
         # TODO(Nick) Pass parameters to set whether to convert to binary, zip or both, and whether to compress https://github.com/pissang/qtek-model-viewer#converter
         unique_id = uuid.uuid4().hex  # Unique 32 character ID used for event ID and model ID
-
-        # Store request as an event in the database
-        # TODO(Nick) Store every request in the events database table
 
         # TODO(Nick): Refactor the IF statement below to remove duplicate code
         if 'file' in request.files:
