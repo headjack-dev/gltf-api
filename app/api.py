@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from flask import Flask, request  # redirect, url_for
+from flask import Flask, request, redirect
 from flask_restful import Resource, Api
 from sqlalchemy import create_engine
 from flask_jsonpify import jsonify
@@ -21,7 +21,7 @@ ALLOWED_EXTENSIONS = (['fbx', 'obj', 'zip', 'glb'])
 MAX_UPLOAD_SIZE_MB = 100  # in MB
 MAX_UPLOAD_SIZE_B = MAX_UPLOAD_SIZE_MB * 1024 * 1024
 
-db_connect = create_engine('sqlite:///chinook.db')
+db = create_engine('sqlite:///database.db')
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_UPLOAD_SIZE_B * 3  # Set max upload size larger, else broken pipe error thrown
@@ -213,7 +213,13 @@ class Models(Resource):
         Returns:
             string: JSON result, or error if one or more of the checks fail.
         """
-        unique_id = uuid.uuid4().hex
+        # TODO(Nick) Write server errors to log file
+        # TODO(Nick) Store metadata of upload in database
+        # TODO(Nick) Pass parameters to set whether to convert to binary, zip or both, and whether to compress https://github.com/pissang/qtek-model-viewer#converter
+        unique_id = uuid.uuid4().hex  # Unique 32 character ID used for event ID and model ID
+
+        # Store request as an event in the database
+        # TODO(Nick) Store every request in the events database table
 
         # TODO(Nick): Refactor the IF statement below to remove duplicate code
         if 'file' in request.files:
@@ -282,7 +288,7 @@ class Models(Resource):
             compress = '-q'
             command.append(compress)
 
-        # TODO(Nick): Add binary export option once it becomes available in the fbx2gltf library
+        # TODO(Nick) Add binary export option once it becomes available in the fbx2gltf library
         # if 'binary' in request.form and request.form.get('binary'):
         #    binary = '-b'
         #    command.append(binary)
@@ -294,16 +300,9 @@ class Models(Resource):
             stderr=subprocess.STDOUT,
             universal_newlines=True
         )
-        process.communicate()  # Wait for subprocess to finish
-        # Write stdout to logfiles
-        # sys.stdout = open(cwd+'/vrencoder_log.txt', 'w', 1)
-        # sys.stderr = open(cwd+'/vrencoder_errors.txt', 'w', 1)
+        process.communicate()  # Wait for conversion to finish before continuing
 
-        # TODO(Nick) Store metadata of upload in database
-        # TODO(Nick) Pass parameters to set whether to convert to binary, zip or both, and whether to compress https://github.com/pissang/qtek-model-viewer#converter
-        result = {'result': 'Successfully saved %s to %s' % (filename, destination_path)}
-        return jsonify(result)
-        # return redirect(url_for('uploaded_file', filename=filename)) # In case we want to display a webpage
+        return redirect('http://127.0.0.1:5018/v1/models/' + unique_id)
 
     def get(self):
         """List all uploaded files.
@@ -332,6 +331,8 @@ class Model(Resource):
             string: JSON result of model metadata.
         """
         # TODO(Nick) Allow parameters to return model in specific format (Original, glb (binary), or glTF (zip))
+        result = {'result': 'Model id = ' + model_id}
+        return jsonify(result)
 
     def delete(self, model_id):
         """Delete a single model.
@@ -343,6 +344,7 @@ class Model(Resource):
         Returns:
             string: JSON result, or error if one or more of the checks fail.
         """
+        # TODO(Nick) Delete models automatically after 1 week
 
 
 # ROUTES
@@ -354,4 +356,4 @@ api.add_resource(Models, '/v1/models')
 api.add_resource(Model, '/v1/models/<model_id>')
 
 if __name__ == '__main__':
-     app.run(port='5016')
+     app.run(port='5018')
