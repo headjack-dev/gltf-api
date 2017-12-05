@@ -385,12 +385,18 @@ class Model(Resource):
         """
         # TODO(Nick) Allow parameters to return model in specific format (Original, glb (binary), or glTF (zip))
         model = db_session.query(ModelsTable).filter(ModelsTable.model_id == model_id).first()
+        if not model:
+            return make_error(404,
+                              'model_not_found',
+                              'The model you requested with id %s does not exist.' % model_id)
+
         result = {'model_id': model.model_id,
                   'filename': model.filename,
                   'created_date': model.created_date,
                   'original_file': model.original_file,
                   'glb_file': model.glb_file,
                   'compressed': model.compressed}
+
         return jsonify(result)
 
     def delete(self, model_id):
