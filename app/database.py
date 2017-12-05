@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, DateTime, Text
+from sqlalchemy import Column, String, DateTime, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
 
@@ -19,19 +19,16 @@ Base = declarative_base()
 #     content = Column(Text)
 
 
-class Models(Base):
+class ModelsTable(Base):
     __tablename__ = 'models'
     # Here we define columns for the table address.
     # Notice that each column is also a normal Python instance attribute.
-    id = Column(Integer, primary_key=True)
-    model_id = Column(String(32), unique=True)
+    model_id = Column(String(32), primary_key=True)
     filename = Column(String(250))
     created_date = Column(DateTime, nullable=False)
     original_file = Column(String(250))
-    gltf_file = Column(String(250))
-    bin_file = Column(String(250))
     glb_file = Column(String(250))
-    zip_file = Column(String(250))
+    compressed = Column(Boolean)
 
 # Create an engine that stores data in the local directory's
 # sqlalchemy_example.db file.

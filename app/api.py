@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
 from flask import Flask, request, redirect
 from flask_restful import Resource, Api
-from sqlalchemy import create_engine
 from flask_jsonpify import jsonify
 from werkzeug.utils import secure_filename
 import subprocess
 import os
 import requests
 import uuid
+import datetime
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+try:
+    from database import Base, ModelsTable
+except (SystemError, ImportError):
+    from .database import Base, ModelsTable
 
 # Follow: https://google.github.io/styleguide/pyguide.html
 __author__ = "Nick Kraakman - nick@headjack.io"
@@ -17,14 +23,24 @@ __author__ = "Nick Kraakman - nick@headjack.io"
 
 UPLOAD_FOLDER = '../static/models'
 TEMP_FOLDER = '../temp'
+STATIC_URL_BASE = 'https://static.headjack.io'
 ALLOWED_EXTENSIONS = (['fbx', 'obj', 'zip', 'glb'])
 MAX_UPLOAD_SIZE_MB = 100  # in MB
 MAX_UPLOAD_SIZE_B = MAX_UPLOAD_SIZE_MB * 1024 * 1024
 
-db = create_engine('sqlite:///database.db')
+# Database config and initialization
+engine = create_engine('sqlite:///database.db')
+Base.metadata.bind = engine
+DBSession = sessionmaker(autocommit=False,
+                         autoflush=False,
+                         bind=engine)
+db_session = DBSession()
+
+# Flask and API config
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_UPLOAD_SIZE_B * 3  # Set max upload size larger, else broken pipe error thrown
+app.config['JSON_SORT_KEYS'] = False  # Prevent sorting of JSON keys
 api = Api(app)
 
 
@@ -151,6 +167,35 @@ def make_error(status_code, error_code, message='', help_url=''):
     return response
 
 
+def make_url(url_type, unique_id, filename):
+    """Create a URL to a file on the server.
+
+    Args:
+        type (string): `original` or `glb`.
+        unique_id (string): Unique ID of the model we are creating links for.
+        filename (string): Filename of the model we are creating links for.
+
+    Returns:
+        string: URL to file on server.
+    """
+    url_base = os.path.join(STATIC_URL_BASE, os.path.basename(UPLOAD_FOLDER), unique_id)
+    filename_base = os.path.splitext(filename)[0]
+
+    if url_type == 'original':
+        url = os.path.join(url_base, filename)
+
+    elif url_type == 'glb':
+        # TODO(Nick) Make sure file exists first?
+        url = os.path.join(url_base, filename_base + '.glb')
+
+    else:
+        raise CustomError(400,
+                          'bad_request',
+                          'You used %s as the type in make_url(). Please use `original` or `glb`.' % url_type)
+
+    return url
+
+
 # CUSTOM EXCEPTIONS
 
 class Error(Exception):
@@ -213,7 +258,6 @@ class Models(Resource):
         Returns:
             string: JSON result, or error if one or more of the checks fail.
         """
-        # TODO(Nick) Store metadata of upload in database
         # TODO(Nick) Pass parameters to set whether to convert to binary, zip or both, and whether to compress https://github.com/pissang/qtek-model-viewer#converter
         unique_id = uuid.uuid4().hex  # Unique 32 character ID used for event ID and model ID
 
@@ -280,9 +324,11 @@ class Models(Resource):
         command = ['../lib/fbx2gltf.py']
 
         # Default is don't compress
+        compressed=False
         if 'compress' in request.form and request.form.get('compress'):
             compress = '-q'
             command.append(compress)
+            compressed = True
 
         # TODO(Nick) Add binary export option once it becomes available in the fbx2gltf library
         # if 'binary' in request.form and request.form.get('binary'):
@@ -297,6 +343,17 @@ class Models(Resource):
             universal_newlines=True
         )
         process.communicate()  # Wait for conversion to finish before continuing
+
+        # Store metadata of upload in database
+        new_model = ModelsTable(model_id=unique_id,
+                                filename=filename,
+                                created_date=datetime.datetime.now(),
+                                original_file=make_url('original', unique_id, filename),
+                                glb_file=make_url('glb', unique_id, filename),
+                                compressed=compressed)
+        db_session.add(new_model)
+        db_session.commit()
+        db_session.flush()
 
         return redirect('http://127.0.0.1:5018/v1/models/' + unique_id)
 
@@ -327,7 +384,13 @@ class Model(Resource):
             string: JSON result of model metadata.
         """
         # TODO(Nick) Allow parameters to return model in specific format (Original, glb (binary), or glTF (zip))
-        result = {'result': 'Model id = ' + model_id}
+        model = db_session.query(ModelsTable).filter(ModelsTable.model_id == model_id).first()
+        result = {'model_id': model.model_id,
+                  'filename': model.filename,
+                  'created_date': model.created_date,
+                  'original_file': model.original_file,
+                  'glb_file': model.glb_file,
+                  'compressed': model.compressed}
         return jsonify(result)
 
     def delete(self, model_id):
