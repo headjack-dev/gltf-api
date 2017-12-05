@@ -65,6 +65,17 @@ print(r.status_code)
 print(r.text)
 
 
+# Get non-existing model
+print("Get non-existing model")
+url = 'http://127.0.0.1:'+PORT+'/v1/models/fakeid99'  # API endpoint
+try:
+    r = requests.get(url=url)
+except requests.exceptions.RequestException as e:  # This is the correct syntax
+    print(e)
+print(r.status_code)
+print(r.text)
+
+
 # Retrieve list of uploaded files
 print("Retrieve list of models")
 url = 'http://127.0.0.1:'+PORT+'/v1/models'  # API endpoint
