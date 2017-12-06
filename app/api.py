@@ -32,9 +32,7 @@ MAX_UPLOAD_SIZE_B = MAX_UPLOAD_SIZE_MB * 1024 * 1024
 # Database config and initialization
 engine = create_engine('sqlite:///database.db')
 Base.metadata.bind = engine
-DBSession = sessionmaker(autocommit=False,
-                         autoflush=False,
-                         bind=engine)
+DBSession = sessionmaker(autocommit=False, bind=engine)
 db_session = DBSession()
 
 # Flask and API config
@@ -328,7 +326,6 @@ class Models(Resource):
                                 compressed=compressed)
         db_session.add(new_model)
         db_session.commit()
-        db_session.flush()
 
         return redirect('http://127.0.0.1:5018/v1/models/' + unique_id)
 
@@ -339,31 +336,46 @@ class Models(Resource):
             string: JSON array of all files in upload directory.
         """
         # TODO(Nick) Add authentication so that only admins can view list of all uploads
-        models_folder = app.config['UPLOAD_FOLDER']
-        dirpath, dirnames, filenames = os.walk(models_folder)
-        return jsonify(dirnames)
+        models = os.listdir(app.config['UPLOAD_FOLDER'])
+
+        return jsonify(models)
 
     def delete(self):
-        """Delete all models, or all models older than x hours if this argument is passed in the delete body.
+        """Delete all models older than x hours.
+
+        `hours_old` int should be passed in `data` of delete request.
 
         Returns:
             string: JSON result, or error if one or more of the checks fail.
         """
-        models_folder = app.config['UPLOAD_FOLDER']
-        for dirpath, dirnames, filenames in os.walk(models_folder):
-            for directory in dirnames:
-                try:
-                    sub_folder = os.path.join(models_folder, directory)
-                    shutil.rmtree(sub_folder)
-                except OSError:
-                    return make_error(404,
-                                      'not_found',
-                                      'Model with id %s cannot be deleted, because it could not be found.' % model_id
-                                      )
+        if 'hours_old' in request.form:
+            hours_old = int(request.form.get('hours_old'))
+        else:
+            return make_error(500,
+                              'bad_request',
+                              'Make sure an `hours_old` int is passed in the `data` of the delete request.'
+                              )
 
-        result = {"result": "Successfully deleted models with ids %s." % dirnames}
+        # Find old models in database
+        x_hours_ago = datetime.datetime.now() - datetime.timedelta(hours=hours_old)
+        models = db_session.query(ModelsTable.model_id).filter(ModelsTable.created_date < x_hours_ago).all()
+
+        # Remove folders and files of old models
+        models_folder = app.config['UPLOAD_FOLDER']
+        for model_id in models:
+            try:
+                sub_folder = os.path.join(models_folder, model_id[0])
+                shutil.rmtree(sub_folder)
+            except OSError:
+                print('Folder with name %s could not be deleted, because it could not be found.' % model_id[0])
+                pass
+
+        # Remove old models from database
+        db_session.query(ModelsTable.model_id).filter(ModelsTable.created_date < x_hours_ago).delete()
+        db_session.commit()
+
+        result = {"result": "Successfully deleted all models older than %d hours." % hours_old}
         return jsonify(result)
-        # TODO(Nick) Also remove from database!!
 
 
 class Model(Resource):
@@ -410,6 +422,11 @@ class Model(Resource):
                               'not_found',
                               'Model with id %s cannot be deleted, because it could not be found.' % model_id
                               )
+
+        # Remove model from database
+        model = db_session.query(ModelsTable).filter(ModelsTable.model_id == model_id).first()
+        db_session.delete(model)
+        db_session.commit()
 
         result = {"result": "Successfully deleted model with id %s." % model_id}
         return jsonify(result)

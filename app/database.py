@@ -30,6 +30,11 @@ class ModelsTable(Base):
     glb_file = Column(String(250))
     compressed = Column(Boolean)
 
+    # Allows result of query to be converted to a dict, making it serializable
+    # Usage: ModelTable.as_dict()
+    # def as_dict(self):
+        # return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
 # Create an engine that stores data in the local directory's
 # sqlalchemy_example.db file.
 db = create_engine('sqlite:///database.db')
