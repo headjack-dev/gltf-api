@@ -339,8 +339,9 @@ class Models(Resource):
             string: JSON array of all files in upload directory.
         """
         # TODO(Nick) Add authentication so that only admins can view list of all uploads
-        result = os.listdir(app.config['UPLOAD_FOLDER'])
-        return jsonify(result)
+        models_folder = app.config['UPLOAD_FOLDER']
+        dirpath, dirnames, filenames = os.walk(models_folder)
+        return jsonify(dirnames)
 
     def delete(self):
         """Delete all models, or all models older than x hours if this argument is passed in the delete body.
