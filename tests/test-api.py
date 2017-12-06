@@ -1,5 +1,6 @@
 # Run test API
 import requests
+import http
 
 PORT = '5018'
 
@@ -35,6 +36,8 @@ url = 'http://127.0.0.1:'+PORT+'/v1/models'  # API endpoint
 source_path = 'https://purplepill.io/wp-includes/3d/test.FBX'
 try:
     r = requests.post(url=url, data={'source_path': source_path})
+except http.client.HTTPException as e:
+    print(e)
 except requests.exceptions.RequestException as e:  # This is the correct syntax
     print(e)
 print(r.status_code)
@@ -47,10 +50,14 @@ url = 'http://127.0.0.1:'+PORT+'/v1/models'  # API endpoint
 source_path = 'https://purplepill.io/wp-includes/3d/test.FBX'
 try:
     r = requests.post(url=url, data={'source_path': source_path, 'compress': True, 'binary': True})
+except http.client.HTTPException as e:
+    print(e)
 except requests.exceptions.RequestException as e:  # This is the correct syntax
     print(e)
 print(r.status_code)
 print(r.text)
+data = r.json()
+model_id = data['model_id']
 
 
 # Upload a file that is too large
@@ -59,6 +66,8 @@ url = 'http://127.0.0.1:'+PORT+'/v1/models'  # API endpoint
 source_path = 'https://purplepill.io/wp-includes/3d/large.zip'
 try:
     r = requests.post(url=url, data={'source_path': source_path})
+except http.client.HTTPException as e:
+    print(e)
 except requests.exceptions.RequestException as e:  # This is the correct syntax
     print(e)
 print(r.status_code)
@@ -70,6 +79,28 @@ print("Get non-existing model")
 url = 'http://127.0.0.1:'+PORT+'/v1/models/fakeid99'  # API endpoint
 try:
     r = requests.get(url=url)
+except requests.exceptions.RequestException as e:  # This is the correct syntax
+    print(e)
+print(r.status_code)
+print(r.text)
+
+
+# Delete non-existing model
+print("Delete non-existing model")
+url = 'http://127.0.0.1:'+PORT+'/v1/models/fakeid99'  # API endpoint
+try:
+    r = requests.delete(url=url)
+except requests.exceptions.RequestException as e:  # This is the correct syntax
+    print(e)
+print(r.status_code)
+print(r.text)
+
+
+# Delete existing model
+print("Delete existing model with id %s" % model_id)
+url = 'http://127.0.0.1:'+PORT+'/v1/models/' + model_id  # API endpoint
+try:
+    r = requests.delete(url=url)
 except requests.exceptions.RequestException as e:  # This is the correct syntax
     print(e)
 print(r.status_code)
