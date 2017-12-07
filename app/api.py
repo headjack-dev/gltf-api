@@ -333,7 +333,9 @@ class Models(Resource):
         db_session.add(new_model)
         db_session.commit()
 
-        return redirect('http://127.0.0.1:5018/v1/models/' + unique_id)
+        # Call Model.get as a function instead of as an API call to save server resources
+        result = Model()
+        return result.get(unique_id)
 
     def get(self):
         """List all uploaded files.
