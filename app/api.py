@@ -16,9 +16,6 @@ try:
 except (SystemError, ImportError):
     from .database import Base, ModelsTable
 
-# Follow: https://google.github.io/styleguide/pyguide.html
-__author__ = "Nick Kraakman - nick@headjack.io"
-
 
 # CONFIG
 
@@ -40,6 +37,15 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_UPLOAD_SIZE_B * 3  # Set max upload size larger, else broken pipe error thrown
 app.config['JSON_SORT_KEYS'] = False  # Prevent sorting of JSON keys
+
+# Set CORS headers
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE')
+    return response
+
 api = Api(app)
 
 

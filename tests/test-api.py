@@ -38,7 +38,7 @@ url = 'http://127.0.0.1:'+PORT+'/v1/models'  # API endpoint
 filename = 'test.png'
 file = open(filename, 'rb')  # File to upload
 try:
-    r = requests.post(url=url, data={'uploaded_file': filename}, files={'file': file})
+    r = requests.post(url=url, files={'file': file})
 except requests.exceptions.RequestException as e:  # This is the correct syntax
     print(e)
 print(r.status_code)
@@ -51,7 +51,7 @@ url = 'http://127.0.0.1:'+PORT+'/v1/models'  # API endpoint
 filename = 'test.FBX'
 file = open(filename, 'rb')  # File to upload
 try:
-    r = requests.post(url=url, data={'uploaded_file': filename}, files={'file': file})
+    r = requests.post(url=url, files={'file': file})
 except requests.exceptions.RequestException as e:  # This is the correct syntax
     print(e)
 print(r.status_code)
