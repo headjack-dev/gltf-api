@@ -94,7 +94,7 @@ img {
 }
 
 #drop.in {
-    border: 3px dashed #2d77b4;
+    border: 3px dashed #24c279;
 }
 
 #drop a {
@@ -184,6 +184,17 @@ img {
 
 #upload ul li.error p {
     color:red;
+}
+
+.download-icon img {
+    width: 48px;
+    top: 15px;
+    left: 32px;
+    position: absolute;
+}
+
+.download-icon:hover img {
+    opacity: 0.9;
 }
 
 /*----------------------------

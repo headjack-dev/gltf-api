@@ -1,3 +1,7 @@
+// TODO: Return error message when invalid file extension is uploaded
+// TODO: Add model viewer
+// TODO: Add About info
+
 $(function(){
 
     var ul = $('#upload ul');
@@ -44,19 +48,16 @@ $(function(){
 
             });
 
-            console.log(data)
-
             // Automatically upload the file once it is added to the queue
             var jqXHR = data.submit()
                 .success(function (result, textStatus, jqXHR) {
-                    console.log(result['glb_file'])
+                    // Show download icon
+                    tpl.find('canvas').replaceWith('<a href="'+result['glb_file']+'" title="Download glTF file" class="download-icon"><img src="img/download.png"></a>')
+                    // TODO: Show in model viewer (replaces form header image). On click in list, that particular file is shown in the viewer.
                 })
                 .error(function (jqXHR, textStatus, errorThrown) {
-                    console.log(data);
                     var errors = jqXHR.responseJSON;
-                    $.each(errors, function (key, value) {
-                        console.log(value);
-                    });
+                    console.log(errors)
                 })
                 // .complete(function (result, textStatus, jqXHR) {/* ... */});
         },
