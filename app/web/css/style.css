@@ -85,12 +85,16 @@ img {
     margin-bottom: 30px;
     border: 20px solid rgba(0, 0, 0, 0);
     border-radius: 3px;
-    border-image: url('../img/border-image.png') 25 repeat;
+    border: 3px dashed #7f858a;
     text-align: center;
     text-transform: uppercase;
     font-size: 16px;
     font-weight: bold;
     color: #7f858a;
+}
+
+#drop.in {
+    border: 3px dashed #2d77b4;
 }
 
 #drop a {

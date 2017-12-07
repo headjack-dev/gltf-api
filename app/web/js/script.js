@@ -75,6 +75,7 @@ $(function(){
         e.preventDefault();
     });
 
+
     // Helper function that formats the file sizes
     function formatFileSize(bytes) {
         if (typeof bytes !== 'number') {
@@ -91,5 +92,15 @@ $(function(){
 
         return (bytes / 1000).toFixed(2) + ' KB';
     }
+
+
+    // Add CSS class when file is hovered over the dropzone
+    $('#drop').on('dragover dragenter', function() {
+        $('#drop').addClass('in');
+    })
+    .on('dragleave dragend drop', function() {
+        $('#drop').removeClass('in');
+    })
+
 
 });
