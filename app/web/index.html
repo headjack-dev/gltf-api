@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="utf-8"/>
+		<title>glTF file converter</title>
+
+		<!-- Google web fonts -->
+		<link href="http://fonts.googleapis.com/css?family=PT+Sans+Narrow:400,700" rel='stylesheet' />
+
+		<!-- The main CSS file -->
+		<link href="css/style.css" rel="stylesheet" />
+	</head>
+
+	<body>
+
+		<div class="wrapper">
+			<div class="form-header">
+				<img src="img/form-header.jpg" alt="glTF model converter" />
+			</div>
+			<form id="upload" method="post" action="http://127.0.0.1:5018/v1/models" enctype="multipart/form-data">
+				<div id="drop">
+					Drop file here
+					or <a>browse</a>
+					<input type="file" name="file" id="file" />
+				</div>
+
+				<ul>
+					<!-- The file uploads will be shown here -->
+				</ul>
+			</form>
+		</div>
+
+		<footer>
+            <div class="footer-inner">
+                <div class="footer-link pull-left">Brought to you by <a href="https://headjack.io" title="Headjack - Create VR apps in minutes instead of months">Headjack</a></div>
+                <div class="footer-link pull-right"><a href="#" id="about">About</a></div>
+            </div>
+        </footer>
+        
+		<!-- JavaScript Includes -->
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+		<script src="js/jquery.knob.js"></script>
+
+		<!-- jQuery File Upload Dependencies -->
+		<script src="js/jquery.ui.widget.js"></script>
+		<script src="js/jquery.iframe-transport.js"></script>
+		<script src="js/jquery.fileupload.js"></script>
+		
+		<!-- Our main JS file -->
+		<script src="js/script.js"></script>
+
+	</body>
+</html>
