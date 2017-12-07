@@ -44,8 +44,21 @@ $(function(){
 
             });
 
+            console.log(data)
+
             // Automatically upload the file once it is added to the queue
-            var jqXHR = data.submit();
+            var jqXHR = data.submit()
+                .success(function (result, textStatus, jqXHR) {
+                    console.log(result['glb_file'])
+                })
+                .error(function (jqXHR, textStatus, errorThrown) {
+                    console.log(data);
+                    var errors = jqXHR.responseJSON;
+                    $.each(errors, function (key, value) {
+                        console.log(value);
+                    });
+                })
+                // .complete(function (result, textStatus, jqXHR) {/* ... */});
         },
 
         progress: function(e, data){
