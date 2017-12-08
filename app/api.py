@@ -300,7 +300,7 @@ class Models(Resource):
 
         # Convert uploaded file to glTF
         # WARNING: Conversion runs on separate thread, and takes longer to finish than the upload!
-        command = ['../lib/fbx2gltf.py']
+        command = ['../lib/fbx2gltf/fbx2gltf.py']
 
         # Default is don't compress
         compressed=False
