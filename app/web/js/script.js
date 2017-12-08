@@ -52,7 +52,7 @@ $(function(){
             var jqXHR = data.submit()
                 .success(function (result, textStatus, jqXHR) {
                     // Show download icon
-                    tpl.find('canvas').replaceWith('<a href="'+result['glb_file']+'" title="Download glTF file" class="download-icon"><img src="img/download.png"></a>')
+                    tpl.find('.cssload-loader').replaceWith('<a href="'+result['glb_file']+'" title="Download glTF file" class="download-icon"><img src="img/download.png"></a>')
                     // TODO: Show in model viewer (replaces form header image). On click in list, that particular file is shown in the viewer.
                 })
                 .error(function (jqXHR, textStatus, errorThrown) {
@@ -73,6 +73,7 @@ $(function(){
 
             if(progress == 100){
                 data.context.removeClass('working');
+                $("#uploaded-items canvas").replaceWith('<div class="cssload-loader"></div>');
             }
         },
 
