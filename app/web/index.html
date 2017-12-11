@@ -3,20 +3,23 @@
 
 	<head>
 		<meta charset="utf-8"/>
-		<title>glTF file converter</title>
+		<title>glTF 2.0 file converter</title>
 
 		<!-- Google web fonts -->
 		<link href="http://fonts.googleapis.com/css?family=PT+Sans+Narrow:400,700" rel='stylesheet' />
 
 		<!-- The main CSS file -->
 		<link href="css/style.css" rel="stylesheet" />
+
 	</head>
 
 	<body>
 
 		<div class="wrapper">
 			<div class="form-header">
-				<img src="img/form-header.jpg" alt="glTF model converter" />
+                <div id="container" style-"height: 300px;">
+                </div>
+				<!--<img src="img/form-header.jpg" alt="glTF model converter" />-->
 			</div>
 			<form id="upload" method="post" action="http://127.0.0.1:5018/v1/models" enctype="multipart/form-data">
 				<div id="drop">
@@ -46,6 +49,12 @@
 		<script src="js/jquery.ui.widget.js"></script>
 		<script src="js/jquery.iframe-transport.js"></script>
 		<script src="js/jquery.fileupload.js"></script>
+
+        <!-- Three JS GLTF loader -->
+        <script src="js/three.min.js"></script>
+		<script src="js/OrbitControls.js"></script>
+		<script src="js/GLTFLoader.js"></script>
+        <!--<script src="js/three.gltf.js"></script>-->
 		
 		<!-- Our main JS file -->
 		<script src="js/script.js"></script>
