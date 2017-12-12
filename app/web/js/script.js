@@ -1,6 +1,4 @@
-// TODO: Return error message when invalid file extension is uploaded
-// TODO: Add About info
-
+// FILE UPLOADER
 $(function(){
 
     var ul = $('#upload ul');
