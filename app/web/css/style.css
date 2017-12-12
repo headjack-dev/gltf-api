@@ -150,8 +150,13 @@ img {
     font-size: 16px;
     font-weight: bold;
     position: absolute;
-    top: 20px;
+    top: 30px;
     left: 100px;
+}
+
+#upload ul li.error p {
+    width: auto;
+    left: 30px;
 }
 
 #upload ul li i {
@@ -174,16 +179,22 @@ img {
     position: absolute;
     top: 34px;
     right: 33px;
-    cursor:pointer;
 }
 
 #upload ul li.working span {
     height: 16px;
     background-position: 0 -12px;
+    cursor:pointer;
 }
 
 #upload ul li.error p {
     color:red;
+}
+
+#upload ul li.error .cssload-loader,
+#upload ul li.error span,
+#upload ul li.error .download-icon {
+    display: none;
 }
 
 .download-icon img {

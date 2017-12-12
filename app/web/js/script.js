@@ -1,5 +1,4 @@
 // TODO: Return error message when invalid file extension is uploaded
-// TODO: Add model viewer
 // TODO: Add About info
 
 $(function(){
@@ -26,11 +25,15 @@ $(function(){
                 ' data-fgColor="#0788a5" data-readOnly="1" data-bgColor="#3e4043" /><p></p><span></span></li>');
 
             // Append the file name and file size
-            tpl.find('p').text(data.files[0].name)
-                         .append('<i>' + formatFileSize(data.files[0].size) + '</i>');
+            original_filename = data.files[0].name
+            extension = getFileExtension(original_filename)
+            new_filename = original_filename.replace(extension, 'gltf')
+
+            tpl.find('p').text(new_filename);
+                         //.append('<i>' + formatFileSize(data.files[0].size) + '</i>');
 
             // Add the HTML to the UL element
-            data.context = tpl.appendTo(ul);
+            data.context = $('ul').html(tpl);
 
             // Initialize the knob plugin
             tpl.find('input').knob();
@@ -42,9 +45,9 @@ $(function(){
                     jqXHR.abort();
                 }
 
-                tpl.fadeOut(function(){
-                    tpl.remove();
-                });
+                //tpl.fadeOut(function(){
+                //    tpl.remove();
+                //});
 
             });
 
@@ -53,11 +56,12 @@ $(function(){
                 .success(function (result, textStatus, jqXHR) {
                     // Show download icon
                     tpl.find('.cssload-loader').replaceWith('<a href="'+result['glb_file']+'" title="Download glTF file" class="download-icon"><img src="img/download.png"></a>')
-                    // TODO: Show in model viewer (replaces form header image). On click in list, that particular file is shown in the viewer.
+
+                    // Initialize model viewer
+                    initViewer(result['glb_file']);
                 })
                 .error(function (jqXHR, textStatus, errorThrown) {
-                    var errors = jqXHR.responseJSON;
-                    console.log(errors)
+                    console.log(errorThrown)
                 })
                 // .complete(function (result, textStatus, jqXHR) {/* ... */});
         },
@@ -72,14 +76,19 @@ $(function(){
             data.context.find('input').val(progress).change();
 
             if(progress == 100){
-                data.context.removeClass('working');
+                $('li').removeClass('working');
                 $("#uploaded-items canvas").replaceWith('<div class="cssload-loader"></div>');
+
             }
         },
 
         fail:function(e, data){
             // Something has gone wrong!
-            data.context.addClass('error');
+            $('li').addClass('error');
+            $('li').removeClass('working');
+            if(e.type == 'fileuploadfail') {
+                $('li p').text('Please upload an FBX, OBJ, or ZIP file')
+            }
         }
 
     });
@@ -120,17 +129,16 @@ $(function(){
 
 });
 
-
-// MODEL VIEWER
-window.onload=function(){
-    init();
-    animate();
+function getFileExtension(filename) {
+    return filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2);
 }
 
-function init() {
+
+// MODEL VIEWER
+function initViewer(glb_file) {
 
     container = document.getElementById( 'container' );
-    camera = new THREE.PerspectiveCamera( 75, 350 / 300, 1, 2000 );
+    camera = new THREE.PerspectiveCamera( 75, 350 / 233, 1, 2000 );
     camera.position.z = 100;
 
     scene = new THREE.Scene();
@@ -145,7 +153,7 @@ function init() {
     scene.add( ambientLight );
 
     var loader = new THREE.GLTFLoader();
-    loader.load('img/boombox/BoomBox.gltf', function ( gltf ) {
+    loader.load(glb_file, function ( gltf ) {
 
         scene.add( gltf.scene );
 
@@ -186,15 +194,15 @@ function init() {
     // Called when loading has errors
     function ( error ) {
 
-        console.log( 'An error occurred while loading the model' );
-        console.log(error);
+        $('li').addClass('error');
+        $('li p').text('An error occurred while loading the model');
 
     });
 
     renderer = new THREE.WebGLRenderer({antialias:true});
-    renderer.setSize( 350, 300 );
-    container.appendChild( renderer.domElement );
-
+    renderer.setSize( 350, 233 );
+    $('#container').html(renderer.domElement);
+    animate();
 }
 
 function animate() {
@@ -214,12 +222,12 @@ function render() {
 function getEnvironmentMap() {
     var format = '.png';
     var loader = new THREE.CubeTextureLoader();
-    loader.setPath( 'img/gradient/' );
+    loader.setPath( 'img/gradient-light/' );
 
     var textureCube = loader.load( [
-        'posx' + format, 'negx' + format,
-        'posy' + format, 'negy' + format,
-        'posz' + format, 'negz' + format
+        'px' + format, 'nx' + format,
+        'py' + format, 'ny' + format,
+        'pz' + format, 'nz' + format
     ] );
 
     return textureCube;

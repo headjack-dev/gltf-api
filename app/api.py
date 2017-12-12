@@ -21,7 +21,7 @@ except (SystemError, ImportError):
 
 UPLOAD_FOLDER = '../static/models'
 TEMP_FOLDER = '../temp'
-STATIC_URL_BASE = 'https://static.headjack.io'
+STATIC_URL_BASE = 'http://localhost:63342/gltf-api/static'
 ALLOWED_EXTENSIONS = (['fbx', 'obj', 'zip', 'glb'])
 MAX_UPLOAD_SIZE_MB = 100  # in MB
 MAX_UPLOAD_SIZE_B = MAX_UPLOAD_SIZE_MB * 1024 * 1024
@@ -191,7 +191,7 @@ def make_url(url_type, unique_id, filename):
 
     elif url_type == 'glb':
         # TODO(Nick) Make sure file exists first?
-        url = os.path.join(url_base, filename_base + '.glb')
+        url = os.path.join(url_base, filename_base + '.gltf')
 
     else:
         raise CustomError(400,
