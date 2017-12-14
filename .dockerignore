@@ -8,7 +8,7 @@
 *.zip
 *.db
 /.git
-/static/models
+/static/models/*
 /app/web/img
 
 # Exceptions

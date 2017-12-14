@@ -19,9 +19,10 @@ except (SystemError, ImportError):
 
 # CONFIG
 
-UPLOAD_FOLDER = '../static/models'
-TEMP_FOLDER = '../temp'
-STATIC_URL_BASE = 'http://localhost:63342/gltf-api/static'
+CURRENT_FOLDER = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_FOLDER = os.path.abspath(os.path.join(CURRENT_FOLDER, os.pardir, 'static', 'models'))
+TEMP_FOLDER = os.path.join(CURRENT_FOLDER, os.pardir, 'temp')
+STATIC_URL_BASE = 'http://0.0.0.0:5020/static'
 ALLOWED_EXTENSIONS = (['fbx', 'obj', 'zip', 'glb'])
 MAX_UPLOAD_SIZE_MB = 100  # in MB
 MAX_UPLOAD_SIZE_B = MAX_UPLOAD_SIZE_MB * 1024 * 1024
@@ -446,4 +447,4 @@ api.add_resource(Models, '/v1/models')
 api.add_resource(Model, '/v1/models/<model_id>')
 
 if __name__ == '__main__':
-     app.run(port='5018')
+     app.run(host='0.0.0.0', port='5020')
