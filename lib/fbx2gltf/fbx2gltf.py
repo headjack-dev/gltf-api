@@ -10,16 +10,17 @@ import sys, struct, json, os.path, math, argparse
 
 try:
     from FbxCommon import *
-except ImportError:
+except ImportError as e:
     import platform
-    msg = 'You need to copy the content in compatible subfolder under /lib/python<version> into your python install folder such as '
+    msg = 'You need to copy the FBX SDK files under /lib/python<version> into your python install folder such as '
     if platform.system() == 'Windows' or platform.system() == 'Microsoft':
         msg += '"Python33/Lib/site-packages"'
     elif platform.system() == 'Linux':
         msg += '"/usr/local/lib/python3.3/site-packages"'
     elif platform.system() == 'Darwin':
         msg += '"/Library/Frameworks/Python.framework/Versions/3.3/lib/python3.3/site-packages"'
-    msg += ' folder.'
+    msg += ' folder. '
+    msg += str(e)
     print(msg)
     sys.exit(1)
 

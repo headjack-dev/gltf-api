@@ -3,20 +3,8 @@ import requests
 import http
 # import sys
 
-PORT = '5018'
+PORT = '5020'
 
-
-# Retrieve list of models
-print("Retrieve list of models")
-url = 'http://127.0.0.1:'+PORT+'/v1/models'  # API endpoint
-# r = requests.get('https://api.github.com/user', auth=('user', 'pass')), because we need authentication for this one
-try:
-    r = requests.get(url=url)
-except requests.exceptions.RequestException as e:  # This is the correct syntax
-    print(e)
-print(r.status_code)
-print(r.text)
-# sys.exit("Done!")
 
 # Delete all models older than x hours
 # r = requests.get('https://api.github.com/user', auth=('user', 'pass')), because we need authentication for this one

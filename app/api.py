@@ -22,8 +22,9 @@ except (SystemError, ImportError):
 CURRENT_FOLDER = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.abspath(os.path.join(CURRENT_FOLDER, os.pardir, 'static', 'models'))
 TEMP_FOLDER = os.path.join(CURRENT_FOLDER, os.pardir, 'temp')
+FBX2GLTF_PATH = os.path.abspath(os.path.join(CURRENT_FOLDER, os.pardir, 'lib', 'fbx2gltf', 'fbx2gltf.py'))
 STATIC_URL_BASE = 'http://0.0.0.0:5020/static'
-ALLOWED_EXTENSIONS = (['fbx', 'obj', 'zip', 'glb'])
+ALLOWED_EXTENSIONS = (['fbx', 'obj', 'zip'])
 MAX_UPLOAD_SIZE_MB = 100  # in MB
 MAX_UPLOAD_SIZE_B = MAX_UPLOAD_SIZE_MB * 1024 * 1024
 
@@ -301,7 +302,7 @@ class Models(Resource):
 
         # Convert uploaded file to glTF
         # WARNING: Conversion runs on separate thread, and takes longer to finish than the upload!
-        command = ['../lib/fbx2gltf/fbx2gltf.py']
+        command = [FBX2GLTF_PATH]
 
         # Default is don't compress
         compressed=False
@@ -318,11 +319,14 @@ class Models(Resource):
         command.append(destination_path)
         process = subprocess.Popen(
             command,
+            stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             universal_newlines=True
         )
+        output = process.stdout.read()
         process.communicate()  # Wait for conversion to finish before continuing
+        print(output)
 
         # Store metadata of upload in database
         new_model = ModelsTable(model_id=unique_id,
