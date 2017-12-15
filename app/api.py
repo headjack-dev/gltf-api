@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from flask import Flask, request, redirect
+from flask import Flask, request, render_template, Response
 from flask_restful import Resource, Api
 from flask_jsonpify import jsonify
 from werkzeug.utils import secure_filename
@@ -20,16 +20,17 @@ except (SystemError, ImportError):
 # CONFIG
 
 CURRENT_FOLDER = os.path.dirname(os.path.abspath(__file__))
-UPLOAD_FOLDER = os.path.abspath(os.path.join(CURRENT_FOLDER, os.pardir, 'static', 'models'))
+UPLOAD_FOLDER = os.path.join(CURRENT_FOLDER, 'static', 'models')
 TEMP_FOLDER = os.path.join(CURRENT_FOLDER, os.pardir, 'temp')
+DB_PATH = os.path.join(CURRENT_FOLDER, 'database', 'database.db')
 FBX2GLTF_PATH = os.path.abspath(os.path.join(CURRENT_FOLDER, os.pardir, 'lib', 'fbx2gltf', 'fbx2gltf.py'))
-STATIC_URL_BASE = 'http://0.0.0.0:5020/static'
 ALLOWED_EXTENSIONS = (['fbx', 'obj', 'zip'])
 MAX_UPLOAD_SIZE_MB = 100  # in MB
 MAX_UPLOAD_SIZE_B = MAX_UPLOAD_SIZE_MB * 1024 * 1024
+DOWNLOAD_URL_BASE = "http://localhost:5022"  # CHANGE TO YOUR OWN SERVER ADDRESS!!
 
 # Database config and initialization
-engine = create_engine('sqlite:///database.db')
+engine = create_engine('sqlite:///' + DB_PATH)
 Base.metadata.bind = engine
 DBSession = sessionmaker(autocommit=False, bind=engine)
 db_session = DBSession()
@@ -185,7 +186,10 @@ def make_url(url_type, unique_id, filename):
     Returns:
         string: URL to file on server.
     """
-    url_base = os.path.join(STATIC_URL_BASE, os.path.basename(app.config['UPLOAD_FOLDER']), unique_id)
+    url_base = os.path.join(DOWNLOAD_URL_BASE,
+                            'static',
+                            os.path.basename(app.config['UPLOAD_FOLDER']),
+                            unique_id)
     filename_base = os.path.splitext(filename)[0]
 
     if url_type == 'original':
@@ -324,9 +328,9 @@ class Models(Resource):
             stderr=subprocess.STDOUT,
             universal_newlines=True
         )
-        output = process.stdout.read()
+        # output = process.stdout.read()
+        # print(output)
         process.communicate()  # Wait for conversion to finish before continuing
-        print(output)
 
         # Store metadata of upload in database
         new_model = ModelsTable(model_id=unique_id,
@@ -445,10 +449,18 @@ class Model(Resource):
         return jsonify(result)
 
 
+class Web(Resource):
+
+    def get(self):
+        """ Return the frontend HTML. This can also be run on a completely separate server. """
+        return Response(render_template('index.html'), mimetype='text/html')
+
+
 # ROUTES
 
 api.add_resource(Models, '/v1/models')
 api.add_resource(Model, '/v1/models/<model_id>')
+api.add_resource(Web, '/')
 
 if __name__ == '__main__':
-     app.run(host='0.0.0.0', port='5020')
+     app.run(host='0.0.0.0', port='5022')

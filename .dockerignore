@@ -9,13 +9,14 @@
 *.zip
 *.db
 /.git
+/app/static/models/*
 /static/models/*
-/app/web/img
+/app/static/img
 Dockerfile-*
 
 # Exceptions
-!/app/web/img/form-header.jpg
-!/app/web/img/download.png
-!/app/web/img/icons.png
-!/app/web/img/border-image.png
-!/app/web/img/gradient-light
+!/app/static/img/form-header.jpg
+!/app/static/img/download.png
+!/app/static/img/icons.png
+!/app/static/img/border-image.png
+!/app/static/img/gradient-light

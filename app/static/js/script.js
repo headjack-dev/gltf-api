@@ -53,7 +53,7 @@ $(function(){
             var jqXHR = data.submit()
                 .success(function (result, textStatus, jqXHR) {
                     // Show download icon
-                    tpl.find('.cssload-loader').replaceWith('<a href="'+result['glb_file']+'" title="Download glTF file" class="download-icon"><img src="img/download.png"></a>')
+                    tpl.find('.cssload-loader').replaceWith('<a href="'+result['glb_file']+'" title="Download glTF file" class="download-icon"><img src="/static/img/download.png"></a>')
 
                     // Initialize model viewer
                     initViewer(result['glb_file']);

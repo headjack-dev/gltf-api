@@ -1,8 +1,11 @@
 from sqlalchemy import Column, String, DateTime, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
+import os
 
 """This script creates an sqlite database with the schema defined below."""
+CURRENT_FOLDER = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(CURRENT_FOLDER, 'database', 'database.db')
 
 Base = declarative_base()
 
@@ -37,7 +40,7 @@ class ModelsTable(Base):
 
 # Create an engine that stores data in the local directory's
 # sqlalchemy_example.db file.
-db = create_engine('sqlite:///database.db')
+db = create_engine('sqlite:///' + DB_PATH)
 
 # Create all tables in the engine. This is equivalent to "Create Table"
 # statements in raw SQL.
