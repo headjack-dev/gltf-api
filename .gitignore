@@ -3,6 +3,7 @@
 *.fbx
 *.bin
 *.gltf
+*.glb
 *.obj
 *.mtl
 *.zip
@@ -10,6 +11,7 @@
 /.git
 /static/models/*
 /app/web/img
+Dockerfile-*
 
 # Exceptions
 !/app/web/img/form-header.jpg
