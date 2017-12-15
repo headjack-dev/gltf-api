@@ -1,7 +1,8 @@
-# Builds an Alpine linux distribution with Python 3.3 and then installs the glTF API
+# Builds a jessie linux distribution with Python 3.3 and then installs the glTF API
 # docker build --tag headjack/gltf:0.0.2 .
 
-FROM alpine:3.4
+
+FROM buildpack-deps:jessie
 MAINTAINER Nick Kraakman
 
 # ensure local python is preferred over distribution python
@@ -11,19 +12,22 @@ ENV PATH /usr/local/bin:$PATH
 # > At the moment, setting "LANG=C" on a Linux system *fundamentally breaks Python 3*, and that's not OK.
 ENV LANG C.UTF-8
 
-# install ca-certificates so that HTTPS works consistently
-# the other runtime dependencies for Python are installed later
-RUN apk add --no-cache ca-certificates
+# runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+		tcl \
+		tk \
+	&& rm -rf /var/lib/apt/lists/*
 
 ENV GPG_KEY 0D96DF4D4110E5C43FBFB17F2D347EA6AA65421D
 ENV PYTHON_VERSION 3.3.7
 
 RUN set -ex \
-	&& apk add --no-cache --virtual .fetch-deps \
-		gnupg \
-		openssl \
-		tar \
-		xz \
+	&& buildDeps=' \
+		dpkg-dev \
+		tcl-dev \
+		tk-dev \
+	' \
+	&& apt-get update && apt-get install -y $buildDeps --no-install-recommends && rm -rf /var/lib/apt/lists/* \
 	\
 	&& wget -O python.tar.xz "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz" \
 	&& wget -O python.tar.xz.asc "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz.asc" \
@@ -34,31 +38,6 @@ RUN set -ex \
 	&& mkdir -p /usr/src/python \
 	&& tar -xJC /usr/src/python --strip-components=1 -f python.tar.xz \
 	&& rm python.tar.xz \
-	\
-	&& apk add --no-cache --virtual .build-deps  \
-		bzip2-dev \
-		coreutils \
-		dpkg-dev dpkg \
-		expat-dev \
-		gcc \
-		gdbm-dev \
-		libc-dev \
-		libffi-dev \
-		linux-headers \
-		make \
-		ncurses-dev \
-		openssl \
-		openssl-dev \
-		pax-utils \
-		readline-dev \
-		sqlite-dev \
-		tcl-dev \
-		tk \
-		tk-dev \
-		xz-dev \
-		zlib-dev \
-# add build deps before removing fetch deps in case there's overlap
-	&& apk del .fetch-deps \
 	\
 	&& cd /usr/src/python \
 	&& gnuArch="$(dpkg-architecture --query DEB_BUILD_GNU_TYPE)" \
@@ -71,15 +50,9 @@ RUN set -ex \
 		--without-ensurepip \
 	&& make -j "$(nproc)" \
 	&& make install \
+	&& ldconfig \
 	\
-	&& runDeps="$( \
-		scanelf --needed --nobanner --format '%n#p' --recursive /usr/local \
-			| tr ',' '\n' \
-			| sort -u \
-			| awk 'system("[ -e /usr/local/lib/" $1 " ]") == 0 { next } { print "so:" $1 }' \
-	)" \
-	&& apk add --virtual .python-rundeps $runDeps \
-	&& apk del .build-deps \
+	&& apt-get purge -y --auto-remove $buildDeps \
 	\
 	&& find /usr/local -depth \
 		\( \
@@ -101,11 +74,7 @@ ENV PYTHON_PIP_VERSION 9.0.1
 
 RUN set -ex; \
 	\
-	apk add --no-cache --virtual .fetch-deps openssl; \
-	\
 	wget -O get-pip.py 'https://bootstrap.pypa.io/get-pip.py'; \
-	\
-	apk del .fetch-deps; \
 	\
 	python get-pip.py \
 		--disable-pip-version-check \
@@ -124,7 +93,6 @@ RUN set -ex; \
 
 # copy all project files
 COPY . /var/www
-EXPOSE 5018
 
 # install FBX SDK, its Python bindings, and all Python packages in requirements.txt
 RUN wget http://download.autodesk.com/us/fbx/2018/2018.1.1/fbx20181_1_fbxsdk_linux.tar.gz \
