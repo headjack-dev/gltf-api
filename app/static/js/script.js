@@ -220,7 +220,7 @@ function render() {
 function getEnvironmentMap() {
     var format = '.png';
     var loader = new THREE.CubeTextureLoader();
-    loader.setPath( 'img/gradient-light/' );
+    loader.setPath( '/static/img/gradient-light/' );
 
     var textureCube = loader.load( [
         'px' + format, 'nx' + format,
