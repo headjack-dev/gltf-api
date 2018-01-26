@@ -22,7 +22,7 @@ print(r.text)
 # Upload a supported file
 print("Upload supported file")
 url = 'http://0.0.0.0:'+PORT+'/v1/models'  # API endpoint
-filename = 'test.FBX'
+filename = 'test.fbx'
 file = open(filename, 'rb')  # File to upload
 try:
     r = requests.post(url=url, files={'file': file})
@@ -35,7 +35,7 @@ print(r.text)
 # Upload a supported file by sending the url
 print("Post source_path to supported file")
 url = 'http://0.0.0.0:'+PORT+'/v1/models'  # API endpoint
-source_path = 'https://purplepill.io/wp-includes/3d/test.FBX'
+source_path = 'https://purplepill.io/wp-includes/3d/test.fbx'
 try:
     r = requests.post(url=url, data={'source_path': source_path})
 except http.client.HTTPException as e:
@@ -49,9 +49,9 @@ print(r.text)
 # Upload a supported file by sending the url + arguments for converter
 print("Post source_path to supported file + arguments")
 url = 'http://0.0.0.0:'+PORT+'/v1/models'  # API endpoint
-source_path = 'https://purplepill.io/wp-includes/3d/test.FBX'
+source_path = 'https://purplepill.io/wp-includes/3d/test.fbx'
 try:
-    r = requests.post(url=url, data={'source_path': source_path, 'compress': True, 'binary': True})
+    r = requests.post(url=url, data={'source_path': source_path, 'compress': 'true', 'binary': 'true'})
 except http.client.HTTPException as e:
     print(e)
 except requests.exceptions.RequestException as e:  # This is the correct syntax

@@ -2,7 +2,6 @@
     Simple reset
 --------------------------*/
 
-
 * {
     margin:0;
     padding:0;
@@ -12,7 +11,6 @@
 /*-------------------------
     General Styles
 --------------------------*/
-
 
 html {
     background-color:#43a8c6;
@@ -60,7 +58,6 @@ img {
 /*----------------------------
     The file upload form
 -----------------------------*/
-
 
 .wrapper {
     font-family:'PT Sans Narrow', sans-serif;
@@ -208,10 +205,10 @@ img {
     opacity: 0.9;
 }
 
-/*----------------------------
-    The Demo Footer
------------------------------*/
 
+/*----------------------------
+    Footer
+-----------------------------*/
 
 footer {
     background-color: #2E3134;
@@ -245,6 +242,7 @@ footer .footer-link a {
 footer div a:hover {
     color: #2b70aa !important;
 }
+
 
 /*----------------------------
     Loading animation
@@ -310,4 +308,63 @@ footer div a:hover {
 @-moz-keyframes cssload-loader {
     from { -moz-transform: scale(0); opacity: 1; }
     to	 { -moz-transform: scale(1); opacity: 0; }
+}
+
+
+/*----------------------------
+    Custom checkbox
+-----------------------------*/
+
+#settings {
+    overflow: hidden;
+}
+
+.custom-checkbox-wrapper {
+    float: left;
+    margin-right: 20px;
+}
+
+.custom-checkbox {
+    float: left;
+    position: relative;
+    margin: 0px 5px 20px 0px;
+}
+.custom-checkbox label {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: -webkit-gradient(linear, left top, left bottom, from(#222222), to(#45484d));
+    background: linear-gradient(to bottom, #222222 0%, #45484d 100%);
+    border-radius: 4px;
+    -webkit-box-shadow: inset 0px 1px 1px rgba(0, 0, 0, 0.5), 0px 1px 0px rgba(255, 255, 255, 0.4);
+          box-shadow: inset 0px 1px 1px rgba(0, 0, 0, 0.5), 0px 1px 0px rgba(255, 255, 255, 0.4);
+}
+.custom-checkbox label:after {
+    content: '';
+    width: 9px;
+    height: 5px;
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    border: 3px solid #fcfff4;
+    border-top: none;
+    border-right: none;
+    background: transparent;
+    opacity: 0;
+    -webkit-transform: rotate(-45deg);
+          transform: rotate(-45deg);
+}
+.custom-checkbox label:hover::after {
+    opacity: 0.3;
+}
+.custom-checkbox input[type=checkbox] {
+    visibility: hidden;
+    width: 20px;
+    height: 20px;
+}
+.custom-checkbox input[type=checkbox]:checked + label:after {
+    opacity: 1;
 }

@@ -197,7 +197,7 @@ def make_url(url_type, unique_id, filename):
 
     elif url_type == 'glb':
         # TODO(Nick) Make sure file exists first?
-        url = os.path.join(url_base, filename_base + '.gltf')
+        url = os.path.join(url_base, filename_base + '.glb')
 
     else:
         raise CustomError(400,
@@ -315,10 +315,10 @@ class Models(Resource):
             command.append(compress)
             compressed = True
 
-        # TODO(Nick) Add binary export option once it becomes available in the fbx2gltf library
-        # if 'binary' in request.form and request.form.get('binary'):
-        #    binary = '-b'
-        #    command.append(binary)
+        # Export as glTF or as GLB
+        if 'binary' in request.form and request.form.get('binary'):
+            binary = '-b'
+            command.append(binary)
 
         command.append(destination_path)
         process = subprocess.Popen(

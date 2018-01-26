@@ -20,10 +20,29 @@
 				<img src="/static/img/form-header.jpg" alt="glTF model converter" />
 			</div>
 			<form id="upload" method="post" action="http://127.0.0.1:5022/v1/models" enctype="multipart/form-data">
+				<div id="settings">
+					<div class="custom-checkbox-wrapper">
+						<div class="custom-checkbox">
+					    	<input type="checkbox" value="None" id="binary" name="binary" checked />
+					    	<label for="binary"></label>
+					    </div>
+					    <span>Binary (GLB)</span>
+					</div>  
+					<div class="custom-checkbox-wrapper">
+						<div class="custom-checkbox">
+					    	<input type="checkbox" value="None" id="compress" name="compress" />
+					    	<label for="compress"></label>
+					    </div>
+					    <span>Compress</span>
+					</div>    	
+				</div>
+
 				<div id="drop">
 					Drop file here
 					or <a>browse</a>
 					<input type="file" name="file" id="file" />
+					<!-- Always convert to GLB format 
+					<input type="hidden" name="binary" value="true">-->
 				</div>
 
 				<ul id="uploaded-items">
