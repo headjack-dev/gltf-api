@@ -29,8 +29,8 @@ class ModelsTable(Base):
     model_id = Column(String(32), primary_key=True)
     filename = Column(String(250))
     created_date = Column(DateTime, nullable=False)
-    original_file = Column(String(250))
-    glb_file = Column(String(250))
+    source_file = Column(String(250))
+    processed_file = Column(String(250))
     compressed = Column(Boolean)
 
     # Allows result of query to be converted to a dict, making it serializable

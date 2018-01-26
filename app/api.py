@@ -9,6 +9,7 @@ import requests
 import uuid
 import datetime
 import shutil
+import zipfile
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 try:
@@ -179,7 +180,7 @@ def make_url(url_type, unique_id, filename):
     """Create a URL to a file on the server.
 
     Args:
-        type (string): `original` or `glb`.
+        type (string): `source`, `glb`, or `gltf`.
         unique_id (string): Unique ID of the model we are creating links for.
         filename (string): Filename of the model we are creating links for.
 
@@ -192,17 +193,21 @@ def make_url(url_type, unique_id, filename):
                             unique_id)
     filename_base = os.path.splitext(filename)[0]
 
-    if url_type == 'original':
-        url = os.path.join(url_base, filename)
+    if url_type == 'source':
+        url = os.path.join(url_base, 'source', filename)
 
     elif url_type == 'glb':
         # TODO(Nick) Make sure file exists first?
-        url = os.path.join(url_base, filename_base + '.glb')
+        url = os.path.join(url_base, 'processed', filename_base + '.glb')
+
+    elif url_type == 'zip':
+        # TODO(Nick) Make sure file exists first?
+        url = os.path.join(url_base, 'processed', filename_base + '.zip')
 
     else:
         raise CustomError(400,
                           'bad_request',
-                          'You used %s as the type in make_url(). Please use `original` or `glb`.' % url_type)
+                          'You used %s as the type in make_url(). Please use `source`, `glb`, or `zip`.' % url_type)
 
     return url
 
@@ -261,7 +266,7 @@ class Models(Resource):
 
             # Save uploaded file
             if allowed:
-                destination_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_id, filename)
+                destination_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_id, 'source', filename)
                 destination_directory = os.path.dirname(destination_path)
 
                 # Create destination directory if it does not exist yet
@@ -283,7 +288,7 @@ class Models(Resource):
 
             # Download file
             if allowed:
-                destination_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_id, filename)
+                destination_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_id, 'source', filename)
                 try:
                     download_file(source_path, destination_path)
                 except CustomError as e:
@@ -304,6 +309,8 @@ class Models(Resource):
                               'unsupported_file',
                               'The %s extension is not allowed, please upload an fbx, obj, or zip file' % extension)
 
+        filename_base = os.path.splitext(filename)[0]
+
         # Convert uploaded file to glTF
         # WARNING: Conversion runs on separate thread, and takes longer to finish than the upload!
         command = [FBX2GLTF_PATH]
@@ -316,11 +323,18 @@ class Models(Resource):
             compressed = True
 
         # Export as glTF or as GLB
+        output_format = 'zip'  # Is zipped gltf
         if 'binary' in request.form and request.form.get('binary'):
             binary = '-b'
             command.append(binary)
+            output_format = 'glb'
 
-        command.append(destination_path)
+        processed_directory = os.path.join(os.path.dirname(destination_path), os.pardir, 'processed')
+        processed_path = os.path.join(processed_directory, filename_base + '.' + output_format)
+        command.append('-o ' + processed_path)
+        
+        command.append(destination_path)  # Source file path
+        
         process = subprocess.Popen(
             command,
             stdin=subprocess.PIPE,
@@ -332,12 +346,29 @@ class Models(Resource):
         # print(output)
         process.communicate()  # Wait for conversion to finish before continuing
 
+        # Zip glTF and related files from processed directory
+        # See: https://www.pythonmania.net/en/2017/06/25/zip-files-in-python/
+        if output_format == 'zip':
+
+            try:
+                import zlib
+                compression = zipfile.ZIP_DEFLATED
+            except:
+                compression = zipfile.ZIP_STORED
+
+            zip_file = zipfile.ZipFile(filename_base + ".zip", mode="w")  # Initiate zip file
+
+            try:
+                zip_file.write(processed_directory, compress_type=compression)
+            finally:
+                zip_file.close()
+
         # Store metadata of upload in database
         new_model = ModelsTable(model_id=unique_id,
                                 filename=filename,
                                 created_date=datetime.datetime.now(),
-                                original_file=make_url('original', unique_id, filename),
-                                glb_file=make_url('glb', unique_id, filename),
+                                source_file=make_url('source', unique_id, filename),
+                                processed_file=make_url(output_format, unique_id, filename),
                                 compressed=compressed)
         db_session.add(new_model)
         db_session.commit()
@@ -416,8 +447,8 @@ class Model(Resource):
         result = {'model_id': model.model_id,
                   'filename': model.filename,
                   'created_date': model.created_date,
-                  'original_file': model.original_file,
-                  'glb_file': model.glb_file,
+                  'source_file': model.source_file,
+                  'processed_file': model.processed_file,
                   'compressed': model.compressed}
 
         return jsonify(result)
