@@ -28,6 +28,7 @@ ALLOWED_EXTENSIONS = (['fbx', 'obj', 'zip'])
 MAX_UPLOAD_SIZE_MB = 100  # in MB
 MAX_UPLOAD_SIZE_B = MAX_UPLOAD_SIZE_MB * 1024 * 1024
 DOWNLOAD_URL_BASE = "http://localhost:5022"  # CHANGE TO YOUR OWN SERVER ADDRESS!!
+API_KEY = 'xxxxxxxx'  # TODO(Nick) Use os.environ['API_KEY'] instead of a hard-coded key  
 
 # Database config and initialization
 engine = create_engine('sqlite:///' + DB_PATH)
@@ -212,6 +213,22 @@ def make_url(url_type, unique_id, filename):
     return url
 
 
+def authenticate():
+    """Check if user is allowed to execute this request.
+
+    Returns:
+        bool: True if user is allowed, else raises an exception.
+    """
+    key = request.args.get("key")    
+    if (key is None) or (not key == API_KEY):
+        raise CustomError(401,
+                          'Unauthorized',
+                          'Please supply a valid API key in your request.'
+                        )
+    else:
+        return True
+
+
 # CUSTOM EXCEPTIONS
 
 class Error(Exception):
@@ -391,7 +408,12 @@ class Models(Resource):
         Returns:
             string: JSON array of all files in upload directory.
         """
-        # TODO(Nick) Add authentication so that only admins can view list of all uploads
+        # Authenticate
+        try: 
+            authenticate()
+        except CustomError as e:
+            return make_error(e.status_code, e.type, e.message, e.help_url)
+
         models = os.listdir(app.config['UPLOAD_FOLDER'])
 
         return jsonify(models)
@@ -404,6 +426,12 @@ class Models(Resource):
         Returns:
             string: JSON result, or error if one or more of the checks fail.
         """
+        # Authenticate
+        try: 
+            authenticate()
+        except CustomError as e:
+            return make_error(e.status_code, e.type, e.message, e.help_url)
+
         if 'hours_old' in request.form:
             hours_old = int(request.form.get('hours_old'))
         else:
@@ -471,6 +499,12 @@ class Model(Resource):
         Returns:
             string: JSON result, or error if one or more of the checks fail.
         """
+        # Authenticate
+        try: 
+            authenticate()
+        except CustomError as e:
+            return make_error(e.status_code, e.type, e.message, e.help_url)
+            
         model_folder = os.path.join(app.config['UPLOAD_FOLDER'], model_id)
         try:
             shutil.rmtree(model_folder)
