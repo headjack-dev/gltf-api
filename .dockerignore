@@ -10,11 +10,13 @@
 *.mtl
 *.zip
 *.db
+*.pyc
 /.git
 /app/static/models/*
 /static/models/*
 /app/static/img
 Dockerfile-*
+/tests/*
 
 # Exceptions
 !/app/static/img/form-header.jpg
@@ -22,3 +24,4 @@ Dockerfile-*
 !/app/static/img/icons.png
 !/app/static/img/border-image.png
 !/app/static/img/gradient-light
+!/tests/test-api.py
