@@ -19,16 +19,9 @@ $(function(){
         // either via the browse button, or via drag/drop:
         add: function (e, data) {
 
+            // Show working animation
             var tpl = $('<li class="working"><input type="text" value="0" data-width="48" data-height="48"'+
                 ' data-fgColor="#0788a5" data-readOnly="1" data-bgColor="#3e4043" /><p></p><span></span></li>');
-
-            // Append the file name and file size
-            original_filename = data.files[0].name
-            extension = getFileExtension(original_filename)
-            new_filename = original_filename.replace(extension, 'gltf')
-
-            tpl.find('p').text(new_filename);
-                         //.append('<i>' + formatFileSize(data.files[0].size) + '</i>');
 
             // Add the HTML to the UL element
             data.context = $('ul').html(tpl);
@@ -53,10 +46,13 @@ $(function(){
             var jqXHR = data.submit()
                 .success(function (result, textStatus, jqXHR) {
                     // Show download icon
-                    tpl.find('.cssload-loader').replaceWith('<a href="'+result['glb_file']+'" title="Download glTF file" class="download-icon"><img src="/static/img/download.png"></a>')
+                    tpl.find('.cssload-loader').replaceWith('<a href="'+result['downloadable_file']+'" title="Download glTF file" class="download-icon"><img src="/static/img/download.png"></a>')
+                    // Append the file name
+                    tpl.find('p').text(getFilename(result['downloadable_file']));
+                                //.append('<i>' + formatFileSize(data.files[0].size) + '</i>');
 
                     // Initialize model viewer
-                    initViewer(result['glb_file']);
+                    initViewer(result['processed_file']);
                 })
                 .error(function (jqXHR, textStatus, errorThrown) {
                     console.log(errorThrown)
@@ -129,6 +125,11 @@ $(function(){
 
 function getFileExtension(filename) {
     return filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2);
+}
+
+// See: https://stackoverflow.com/a/424006
+function getFilename(path) {
+    return path.split('\\').pop().split('/').pop();
 }
 
 
