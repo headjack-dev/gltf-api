@@ -3,15 +3,12 @@
 
 
 FROM headjack/python:3.3.7-jessie-fbx
-MAINTAINER Nick Kraakman
 
-# copy all project files
+# Copy all project files
 COPY . /var/www
 
-# install all Python packages in requirements.txt and create database
-RUN pip install -r /var/www/requirements.txt \
-	&& cd /var/www/app \
-	&& python database.py
+# Install all Python packages in requirements.txt
+RUN pip install -r /var/www/requirements.txt
 
-# start API
+# Start API
 CMD ["python", "/var/www/app/api.py"]
