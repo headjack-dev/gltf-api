@@ -2,6 +2,8 @@
 from flask import Flask, request, render_template, Response
 from flask_restful import Resource, Api
 from flask_jsonpify import jsonify
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from werkzeug.utils import secure_filename
 import subprocess
 import os
@@ -41,6 +43,13 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_UPLOAD_SIZE_B * 3  # Set max upload size larger, else broken pipe error thrown
 app.config['JSON_SORT_KEYS'] = False  # Prevent sorting of JSON keys
+
+# Rate limiting config
+limiter = Limiter(
+    app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"]
+)
 
 # Set CORS headers
 @app.after_request
@@ -386,7 +395,6 @@ class Models(Resource):
                                 processed_directory)
             download_format = 'zip'
 
-
         # Store metadata of upload in database
         new_model = ModelsTable(model_id=unique_id,
                                 filename=filename,
@@ -504,7 +512,7 @@ class Model(Resource):
             authenticate()
         except CustomError as e:
             return make_error(e.status_code, e.type, e.message, e.help_url)
-            
+
         model_folder = os.path.join(app.config['UPLOAD_FOLDER'], model_id)
         try:
             shutil.rmtree(model_folder)
