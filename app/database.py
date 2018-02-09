@@ -31,6 +31,7 @@ class ModelsTable(Base):
     created_date = Column(DateTime, nullable=False)
     source_file = Column(String(250))
     processed_file = Column(String(250))
+    downloadable_file = Column(String(250))
     compressed = Column(Boolean)
 
     # Allows result of query to be converted to a dict, making it serializable

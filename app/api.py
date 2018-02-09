@@ -9,7 +9,6 @@ import requests
 import uuid
 import datetime
 import shutil
-import zipfile
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 try:
@@ -197,17 +196,18 @@ def make_url(url_type, unique_id, filename):
         url = os.path.join(url_base, 'source', filename)
 
     elif url_type == 'glb':
-        # TODO(Nick) Make sure file exists first?
         url = os.path.join(url_base, 'processed', filename_base + '.glb')
 
+    elif url_type == 'gltf':
+        url = os.path.join(url_base, 'processed', filename_base + '.gltf')
+
     elif url_type == 'zip':
-        # TODO(Nick) Make sure file exists first?
-        url = os.path.join(url_base, 'processed', filename_base + '.zip')
+        url = os.path.join(url_base, filename_base + '.zip')
 
     else:
         raise CustomError(400,
                           'bad_request',
-                          'You used %s as the type in make_url(). Please use `source`, `glb`, or `zip`.' % url_type)
+                          'You used %s as the type in make_url(). Please use `source`, `glb`, `gltf`, or `zip`.' % url_type)
 
     return url
 
@@ -249,7 +249,10 @@ class Models(Resource):
             string: JSON result, or error if one or more of the checks fail.
         """
         # TODO(Nick) Pass parameters to set whether to convert to binary, zip or both, and whether to compress https://github.com/pissang/qtek-model-viewer#converter
-        unique_id = uuid.uuid4().hex  # Unique 32 character ID used for event ID and model ID
+        unique_id = uuid.uuid4().hex  # Unique 32 character ID used for event ID and model 
+        
+        destination_directory = os.path.join(app.config['UPLOAD_FOLDER'], unique_id, 'source')
+        processed_directory = os.path.join(app.config['UPLOAD_FOLDER'], unique_id, 'processed')
 
         # TODO(Nick): Refactor the IF statement below to remove duplicate code
         if 'file' in request.files:
@@ -266,13 +269,16 @@ class Models(Resource):
 
             # Save uploaded file
             if allowed:
-                destination_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_id, 'source', filename)
-                destination_directory = os.path.dirname(destination_path)
+                destination_path = os.path.join(destination_directory, filename)
 
                 # Create destination directory if it does not exist yet
                 if not os.path.exists(destination_directory):
                     os.makedirs(destination_directory)
 
+                # Also create the directory for the processed files while we're at it
+                if not os.path.exists(processed_directory):
+                    os.makedirs(processed_directory)
+                
                 file.save(destination_path)
 
             else:
@@ -288,7 +294,16 @@ class Models(Resource):
 
             # Download file
             if allowed:
-                destination_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_id, 'source', filename)
+                destination_path = os.path.join(destination_directory, filename)
+
+                # Create destination directory if it does not exist yet
+                if not os.path.exists(destination_directory):
+                    os.makedirs(destination_directory)
+
+                # Also create the directory for the processed files while we're at it
+                if not os.path.exists(processed_directory):
+                    os.makedirs(processed_directory)
+
                 try:
                     download_file(source_path, destination_path)
                 except CustomError as e:
@@ -323,15 +338,14 @@ class Models(Resource):
             compressed = True
 
         # Export as glTF or as GLB
-        output_format = 'zip'  # Is zipped gltf
+        processed_format = 'gltf'
         if 'binary' in request.form and request.form.get('binary'):
             binary = '-b'
             command.append(binary)
-            output_format = 'glb'
+            processed_format = 'glb'
 
-        processed_directory = os.path.join(os.path.dirname(destination_path), os.pardir, 'processed')
-        processed_path = os.path.join(processed_directory, filename_base + '.' + output_format)
-        command.append('-o ' + processed_path)
+        processed_path = os.path.join(processed_directory, filename_base + '.' + processed_format)
+        command.append('-o' + processed_path)
         
         command.append(destination_path)  # Source file path
         
@@ -342,33 +356,27 @@ class Models(Resource):
             stderr=subprocess.STDOUT,
             universal_newlines=True
         )
-        # output = process.stdout.read()
-        # print(output)
+        #output = process.stdout.read()
+        #print(output)
         process.communicate()  # Wait for conversion to finish before continuing
 
         # Zip glTF and related files from processed directory
-        # See: https://www.pythonmania.net/en/2017/06/25/zip-files-in-python/
-        if output_format == 'zip':
+        # See: https://stackoverflow.com/a/25650295
+        download_format = processed_format
+        if processed_format == 'gltf':
+            shutil.make_archive(os.path.join(app.config['UPLOAD_FOLDER'], unique_id, filename_base),
+                                'zip', 
+                                processed_directory)
+            download_format = 'zip'
 
-            try:
-                import zlib
-                compression = zipfile.ZIP_DEFLATED
-            except:
-                compression = zipfile.ZIP_STORED
-
-            zip_file = zipfile.ZipFile(filename_base + ".zip", mode="w")  # Initiate zip file
-
-            try:
-                zip_file.write(processed_directory, compress_type=compression)
-            finally:
-                zip_file.close()
 
         # Store metadata of upload in database
         new_model = ModelsTable(model_id=unique_id,
                                 filename=filename,
                                 created_date=datetime.datetime.now(),
                                 source_file=make_url('source', unique_id, filename),
-                                processed_file=make_url(output_format, unique_id, filename),
+                                processed_file=make_url(processed_format, unique_id, filename),
+                                downloadable_file=make_url(download_format, unique_id, filename),
                                 compressed=compressed)
         db_session.add(new_model)
         db_session.commit()
@@ -449,6 +457,7 @@ class Model(Resource):
                   'created_date': model.created_date,
                   'source_file': model.source_file,
                   'processed_file': model.processed_file,
+                  'downloadable_file': model.downloadable_file,
                   'compressed': model.compressed}
 
         return jsonify(result)
