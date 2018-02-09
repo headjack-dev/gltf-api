@@ -1,5 +1,7 @@
 # Exclude
 /.idea
+/.vscode
+/venv
 *.fbx
 *.bin
 *.gltf
