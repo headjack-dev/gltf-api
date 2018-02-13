@@ -13,7 +13,7 @@ If you want to use the API directly instead of the web interface, use a POST req
 
 ```
 import requests
-url = 'https://gltfapi.co/models'
+url = 'https://gltfapi.co/v1/models'
 file = open('test.fbx', 'rb')
 requests.post(url=url, files={'file': file})
 ```
@@ -22,7 +22,7 @@ Or you can POST an url to a hosted file.
 
 ```
 import requests
-url = 'https://gltfapi.co/models'
+url = 'https://gltfapi.co/v1/models'
 source_path = 'https://example.com/test.fbx'
 requests.post(url=url, data={'source_path': source_path})
 ```
@@ -31,7 +31,7 @@ After uploading, you can use the `/models/{id}` endpoint to GET information abou
 
 ```
 import requests
-url = 'https://gltfapi.co/models/1234567890'
+url = 'https://gltfapi.co/v1/models/1234567890'
 requests.get(url=url)
 ```
 
@@ -89,11 +89,11 @@ Now that the container is running, you can go to `localhost:5022` and you should
 The following endpoints exist:
 
 * `/:GET` HTML5 upload form for the glTF converter
-* `/models:GET` Retrieves a list of uploaded models (protected)
-* `/models:POST` Post an FBX, ZIP or OBJ file to the converter
-* `/models:DELETE` Delete all models older than `hours_old` parameter (protected)
-* `/models/{id}:GET` Retrieve information about a single model
-* `/models/{id}:DELETE` Delete a single model (protected)
+* `/v1/models:GET` Retrieves a list of uploaded models (protected)
+* `/v1/models:POST` Post an FBX, ZIP or OBJ file to the converter
+* `/v1/models:DELETE` Delete all models older than `hours_old` parameter (protected)
+* `/v1/models/{id}:GET` Retrieve information about a single model
+* `/v1/models/{id}:DELETE` Delete a single model (protected)
 
 The `protected` endpoints require you to pass a `key` parameter in the request, of which the value can be set using the `API_KEY` variable in `api.py`.
 
@@ -167,7 +167,7 @@ sudo docker build --tag headjack/gltf:0.0.1 .
 Now run the Docker container to start the API.
 
 ```
-sudo docker run -p 5022:5022 --name gltf --mount source=modelsvol,target=/var/www/static/models --mount source=modelsdb,target=/var/www/app/database.db headjack/gltf:0.0.1
+sudo docker run -p 5022:80 --name gltf --mount source=modelsvol,target=/var/www/static/models --mount source=modelsdb,target=/var/www/app/database.db headjack/gltf:0.0.1
 ```
 
 Congratulations, you have just successfully deployed your API to EC2!
