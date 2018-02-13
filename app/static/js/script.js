@@ -193,8 +193,9 @@ function initViewer(glb_file) {
     // Called when loading has errors
     function ( error ) {
 
-        $('li').addClass('error');
-        $('li p').text('An error occurred while loading the model');
+        console.log('An error occurred while loading the model');
+        //$('li').addClass('error');
+        //$('li p').text('An error occurred while loading the model');
 
     });
 
