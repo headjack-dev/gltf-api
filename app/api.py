@@ -429,7 +429,7 @@ class Models(Resource):
     def delete(self):
         """Delete all models older than x hours.
 
-        `hours_old` int should be passed in `data` of delete request.
+        `hours_old` should be passed in url of delete request.
 
         Returns:
             string: JSON result, or error if one or more of the checks fail.
@@ -440,12 +440,12 @@ class Models(Resource):
         except CustomError as e:
             return make_error(e.status_code, e.type, e.message, e.help_url)
 
-        if 'hours_old' in request.form:
-            hours_old = int(request.form.get('hours_old'))
+        if 'hours_old' in request.args:
+            hours_old = int(request.args.get('hours_old'))
         else:
             return make_error(500,
                               'bad_request',
-                              'Make sure an `hours_old` int is passed in the `data` of the delete request.'
+                              'Make sure an `hours_old` int is passed as a parameter of the delete request.'
                               )
 
         # Find old models in database
