@@ -6,7 +6,7 @@
 # TODO: texture flipY?
 # http://github.com/pissang/
 # ############################################
-import sys, struct, json, os.path, math, argparse
+import sys, struct, json, os.path, math, argparse, shutil
 
 try:
     from FbxCommon import *
@@ -433,7 +433,7 @@ def ConvertToPBRMaterial(pMaterial):
 
     if (lShading == 'unknown'):
         lib_materials.append(lGLTFMaterial)
-        return lMaterialIdx
+        return lMaterialIdx, 1, 1, 0, 0
 
     lGLTFMaterial['emissiveFactor'] = list(pMaterial.Emissive.Get())
 
@@ -675,7 +675,7 @@ def ConvertMesh(pScene, pMesh, pNode, pSkin, pClusters):
                 ))
 
     range3 = range(3)
-    lVertexCount = 0;
+    lVertexCount = 0
 
     lNeedHash = False
     if lNormalLayer:
@@ -1071,8 +1071,9 @@ def ConvertNodeAnimation(pGLTFAnimation, pAnimLayer, pNode, pSampleRate, pStartT
             lQuaternion = lTransform.GetQ()
             lScale = lTransform.GetS()
 
-            #Convert quaternion to axis angle
-            lTimeChannel.append(lSecondDouble)
+            # Convert quaternion to axis angle
+            # PENDING. minus pStartTime or lStartTimeDouble?
+            lTimeChannel.append(lSecondDouble - pStartTime)
 
             if lHaveRotation:
                 lRotationChannel.append(list(lQuaternion))
@@ -1226,15 +1227,30 @@ def FindFileInDir(pFileName, pDir):
             if file == pFileName:
                 return os.path.join(root, file)
 
+
 def CorrectImagesPaths(pFilePath):
     lFileFullPath = os.path.join(os.getcwd(), pFilePath)
-    lFileDir = os.path.dirname(lFileFullPath)
+    lFileExtension = pFilePath.rsplit('.', 1)[1].lower()
     for lGLTFImage in lib_images:
         lUri = lGLTFImage['uri']
         lUri = lUri.replace(r'[\\\/]+', os.path.sep)
+        # FBX SDK extracts zip input files to temp folder, so use lGLTFImage uri instead to find temp folder
+        if lFileExtension == 'zip':
+            lFileDir = os.path.dirname(lGLTFImage['uri'])
+        else:
+            lFileDir = os.path.dirname(lFileFullPath)
         lUri = FindFileInDir(os.path.basename(lUri), lFileDir)
         if lUri:
             lRelUri = os.path.relpath(lUri, lFileDir)
+            # If an alternative output directory is specified, copy all textures to output directory
+            if lOutputDirSpecified:
+                lOutputDir = os.path.dirname(args.output)
+                # If textures are in a dir and that dir does not yet exist, create it
+                lRelTextureDir = os.path.dirname(lRelUri)
+                lFullTextureDir = os.path.join(lOutputDir, lRelTextureDir)
+                if not os.path.exists(lFullTextureDir):
+                    os.makedirs(lFullTextureDir)
+                shutil.copyfile(lUri, os.path.join(lOutputDir, lRelUri))
             if not lRelUri == lGLTFImage['uri']:
                 print('Changed texture file path from "' + lGLTFImage['uri'] + '" to "' + lRelUri + '"')
             lGLTFImage['uri'] = lRelUri
@@ -1311,6 +1327,9 @@ def Convert(
     else:
         lBasename, lExt = os.path.splitext(ouptutFile)
 
+        # PENDING, if it will affect the conversion after.
+        FbxAxisSystem.OpenGL.ConvertScene(lScene)
+
         # Do it before SplitMeshesPerMaterial or the vertices of split mesh will be wrong.
         PrepareBakeTransform(lScene.GetRootNode())
         lScene.GetRootNode().ConvertPivotAnimationRecursive(None, FbxNode.eDestinationPivot, 60)
@@ -1320,8 +1339,9 @@ def Convert(
 
         # SplitMeshPerMaterial will fail if the mapped material is not per face (FbxLayerElement::eByPolygon) or if a material is multi-layered.
         # http://help.autodesk.com/view/FBX/2017/ENU/?guid=__cpp_ref_class_fbx_geometry_converter_html
-        if not fbxConverter.SplitMeshesPerMaterial(lScene, True):
-            print('SplitMeshesPerMaterial fail')
+        # TODO May have bug
+        # if not fbxConverter.SplitMeshesPerMaterial(lScene, True):
+        #     print('SplitMeshesPerMaterial fail')
 
         PrepareSceneNode(lScene.GetRootNode())
 
@@ -1447,11 +1467,14 @@ if __name__ == "__main__":
         lDuration = float(lTimeRange[1])
 
     if not args.output:
+        lOutputDirSpecified = False
         lBasename, lExt = os.path.splitext(args.file)
         if args.binary:
             args.output = lBasename + '.glb'
         else:
             args.output = lBasename + '.gltf'
+    else:
+        lOutputDirSpecified = True
 
     # PENDING Not use INFINITY poseTime or some joint transform without animation maybe not right.
     lPoseTime = FbxTime()
