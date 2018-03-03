@@ -5,7 +5,7 @@ API to convert OBJ, FBX and COLLADA files to [glTF](https://github.com/KhronosGr
 
 ## Usage
 
-To convert a 3D model to glTF, go to [the glTF API website](https://github.com/pissang/clay-viewer#converter) and upload your 3D model as OBJ, FBX or COLLADA. Zipped files are also accepted.
+To convert a 3D model to glTF, go to [the glTF API website](https://gltfapi.co/) and upload your 3D model as OBJ, FBX or COLLADA. Zipped files are also accepted.
 
 *Make sure your models use **relative** texture paths, else the model viewer on the page will not be able to preview your converted model.*
 
