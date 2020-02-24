@@ -167,7 +167,7 @@ sudo docker build --tag headjack/gltf:0.0.1 .
 Now run the Docker container to start the API.
 
 ```
-sudo docker run -p 5022:80 --name gltf --mount source=modelsvol,target=/var/www/static/models --mount source=modelsdb,target=/var/www/app/database.db headjack/gltf:0.0.1
+sudo docker run -p 80:80 --name gltf --mount source=modelsvol,target=/var/www/static/models --mount source=modelsdb,target=/var/www/app/database.db headjack/gltf:0.0.1
 ```
 
 Congratulations, you have just successfully deployed your API to EC2!
